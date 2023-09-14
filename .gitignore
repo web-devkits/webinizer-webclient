@@ -1,0 +1,15 @@
+# basically ignore .vscode but allow for some specific files such as debug
+.vscode
+
+# logs
+logs
+*.log
+
+# docs
+docs
+
+# modules
+node_modules
+
+# distribution
+/dist
