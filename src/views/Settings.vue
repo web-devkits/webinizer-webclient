@@ -11,7 +11,7 @@
     </section>
 
     <div v-if="settings">
-      <div class="bl mr-6 mb-4 mt-6">
+      <div class="mr-6 mb-4 mt-6">
         <v-card variant="elevated" flat>
           <v-card-item class="text-left mb-8"><v-card-title> Registry </v-card-title> </v-card-item>
           <v-card-text>
@@ -30,21 +30,41 @@
 
       <div
         v-if="settings?.extensions && Object.keys(settings?.extensions).length"
-        class="bl mr-6 mb-4 mt-6 g2x3">
+        class="mr-6 mb-4 mt-6">
         <v-card variant="elevated" flat>
-          <v-card-item class="text-left mb-10"
-            ><v-card-title> Extensions </v-card-title
+          <v-card-item class="text-left"
+            ><v-card-title> Extensions List</v-card-title
             ><v-card-subtitle>
               Manage the installed extensions by enable or disable.
             </v-card-subtitle>
-            <div v-for="(ext, idx) in Object.keys(settings?.extensions)" :key="idx" class="mb-6">
-              <EditOptionSwitch
-                :option-type="ext"
-                :title="ext"
-                :sub-title="settings?.extensions?.[ext].desc"
-                :value="settings?.extensions?.[ext].status === 'enable' ? true : false"
-                @change="saveExtensionStatus"></EditOptionSwitch></div
-          ></v-card-item>
+          </v-card-item>
+
+          <v-card-text>
+            <div v-if="settings?.extensions && Object.keys(settings?.extensions).length">
+              <div v-for="(ext, idx) in Object.keys(settings?.extensions)" :key="idx">
+                <div class="extension_list">
+                  <div class="extension_name text-left">
+                    <h3 :title="ext">
+                      {{ ext }}
+                    </h3>
+                  </div>
+
+                  <div class="extension_desc">
+                    <span class="text-medium-emphasis" :title="settings?.extensions?.[ext].desc">{{
+                      settings?.extensions?.[ext].desc
+                    }}</span>
+                  </div>
+
+                  <div class="extension_switch">
+                    <v-switch
+                      :model-value="settings?.extensions?.[ext].status === 'enable' ? true : false"
+                      color="blue"
+                      hide-details
+                      @change="saveExtensionStatus(ext)"></v-switch>
+                  </div>
+                </div>
+              </div></div
+          ></v-card-text>
         </v-card>
       </div>
     </div>
@@ -56,7 +76,6 @@ import { computed, onMounted, ref } from "vue";
 import { useStore } from "../store";
 import { log } from "../helper";
 import EditTextField from "../components/config/EditTextField.vue";
-import EditOptionSwitch from "../components/config/EditOptionSwitch.vue";
 
 const store = useStore();
 
@@ -122,5 +141,66 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 400;
   color: #333;
+}
+
+.extension_list {
+  height: 3.5rem;
+  display: grid;
+  grid-template-columns: 3fr 4fr 1fr;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.extension_list:hover {
+  cursor: default;
+  box-shadow:
+    inset 1px 0 0 var(--black-03),
+    inset -1px 0 0 var(--black-03),
+    0 1px 2px 0 rgba(60, 64, 67, 0.3),
+    0 1px 3px 1px rgba(60, 64, 67, 0.15);
+
+  z-index: 2;
+}
+
+.extension_name {
+  grid-column: 1;
+  justify-items: start;
+  padding-left: 10px;
+}
+
+.extension_desc {
+  grid-column: 2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  justify-self: start;
+}
+
+.extension_name,
+.extension_desc {
+  cursor: text;
+}
+
+.extension_switch {
+  justify-self: end;
+  padding-right: 10px;
+}
+
+@media only screen and (max-width: 600px) {
+  .extension_list {
+    width: 100%;
+    grid-template-columns: 4fr 1fr;
+    gap: 10px;
+  }
+
+  .extension_name {
+    grid-column: 1;
+  }
+
+  .extension_desc {
+    display: none;
+  }
 }
 </style>
