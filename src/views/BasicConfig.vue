@@ -34,24 +34,26 @@
               <span v-if="!showDependentArea" class="hidden-md-and-down">clone from github</span>
               <v-icon title="Clone from github" end> mdi-github </v-icon></v-tab
             >
-            <v-tooltip location="top" :disabled="settings?.registry ? true : false">
-              <template #activator="{ props }">
-                <div v-bind="props">
-                  <v-tab
-                    :value="AddProjectType.registry"
-                    :disabled="settings?.registry ? false : true">
-                    <span v-if="!showDependentArea" class="hidden-md-and-down"
-                      >add from registry</span
-                    >
-                    <v-icon title="Add from registry" end> mdi-cloud-download </v-icon></v-tab
-                  >
-                </div>
-              </template>
+
+            <template v-if="!settings?.registry">
               <span
-                >Add a valid registry address in the Settings page to enable adding a project from
-                registry.</span
-              >
-            </v-tooltip>
+                :value="AddProjectType.registry"
+                title="Add a valid registry address in the Settings page to enable adding a project from registry.">
+                <v-tab :value="AddProjectType.registry" disabled>
+                  <span v-if="!showDependentArea" class="hidden-md-and-down"
+                    >add from registry</span
+                  >
+                  <v-icon title="Add from registry" end> mdi-cloud-download </v-icon></v-tab
+                >
+              </span>
+            </template>
+
+            <template v-else>
+              <v-tab :value="AddProjectType.registry">
+                <span v-if="!showDependentArea" class="hidden-md-and-down">add from registry</span>
+                <v-icon title="Add from registry" end> mdi-cloud-download </v-icon></v-tab
+              ></template
+            >
           </v-tabs>
 
           <v-window v-model="tabValue" class="mt-4">
