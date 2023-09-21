@@ -13,12 +13,7 @@
     <div v-if="settings">
       <div class="bl mr-6 mb-4 mt-6">
         <v-card variant="elevated" flat>
-          <v-card-item class="text-left mb-8"
-            ><v-card-title> Registry </v-card-title
-            ><v-card-subtitle>
-              Set a npm compatible registry address to use the registry service with Webinizer.
-            </v-card-subtitle></v-card-item
-          >
+          <v-card-item class="text-left mb-8"><v-card-title> Registry </v-card-title> </v-card-item>
           <v-card-text>
             <EditTextField
               label="Registry address"
@@ -26,6 +21,8 @@
               :value="settings?.registry"
               :rules="registryRules"
               :has-error="registryUpdateFailure"
+              :need-tip="true"
+              tip-content="Set a npm compatible registry address to use the registry service with Webinizer."
               @change-with-type="saveRegistrySettings"></EditTextField>
           </v-card-text>
         </v-card>
