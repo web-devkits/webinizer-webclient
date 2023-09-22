@@ -30,26 +30,26 @@
       </v-expansion-panels>
     </div>
 
-    <v-tooltip location="bottom" :disabled="settings?.registry ? true : false">
-      <template #activator="{ props }">
-        <div v-bind="props" class="d-flex justify-center">
-          <v-btn
-            tile
-            color="blue"
-            class="mainbtn"
-            append-icon="mdi-publish"
-            :disabled="disabledPublishBtn || settings?.registry ? false : true"
-            :loading="publishStatus === webinizer.ProjectPublishStatus.processing ? true : false"
-            @click="showAlert"
-            >PUBLISH</v-btn
-          >
-        </div>
-      </template>
+    <template v-if="disabledPublishBtn">
       <span
-        >Add a valid registry address in the Settings page to enable publishing a project to
-        registry.</span
-      >
-    </v-tooltip>
+        title="Add a valid registry address in the Settings page to enable publishing a project to registry.">
+        <v-btn tile disabled color="grey" class="mainbtn" append-icon="mdi-publish-off">
+          PUBLISH
+        </v-btn>
+      </span>
+    </template>
+
+    <template v-else
+      ><v-btn
+        tile
+        color="blue"
+        class="mainbtn"
+        append-icon="mdi-publish"
+        :loading="publishStatus === webinizer.ProjectPublishStatus.processing ? true : false"
+        @click="showAlert">
+        PUBLISH
+      </v-btn>
+    </template>
   </div>
 
   <Transition name="slide-fade">
@@ -80,13 +80,14 @@ const toast = useToast();
 
 const panel = ref([0]);
 const alert = ref(false);
-const disabledPublishBtn = ref(false);
 
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
 const buildStatusType = computed(() => store.state.buildingStatus);
 const publishStatus = computed(() => store.state.projPublishStatus);
 const settings = computed(() => store.state.webinizerSettings);
+
+const disabledPublishBtn = ref(settings.value?.registry ? false : true);
 
 const publishNotice = `Webinizer supports publishing a project to a registry that is npm compatible as an \`experimental\` feature.
 
