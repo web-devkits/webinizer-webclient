@@ -13,7 +13,12 @@
     <div v-if="settings">
       <div class="mr-6 mb-4 mt-6">
         <v-card variant="elevated" flat>
-          <v-card-item class="text-left mb-8"><v-card-title> Registry </v-card-title> </v-card-item>
+          <v-card-item class="text-left mb-8"
+            ><v-card-title class="d-flex">
+              <span class="pr-2">Registry</span>
+              <TipPopover type="L" :tip-content="registryTip"></TipPopover>
+            </v-card-title>
+          </v-card-item>
           <v-card-text>
             <EditTextField
               label="Registry address"
@@ -22,7 +27,6 @@
               :rules="registryRules"
               :has-error="registryUpdateFailure"
               :need-tip="true"
-              tip-content="Set a npm compatible registry address to use the registry service with Webinizer."
               @change-with-type="saveRegistrySettings"></EditTextField>
           </v-card-text>
         </v-card>
@@ -33,7 +37,9 @@
         class="mr-6 mb-4 mt-6">
         <v-card variant="elevated" flat>
           <v-card-item class="text-left"
-            ><v-card-title> Extensions List</v-card-title
+            ><v-card-title class="d-flex">
+              <span class="pr-2">Extensions</span>
+              <TipPopover type="L" :tip-content="extensionTip"></TipPopover> </v-card-title
             ><v-card-subtitle>
               Manage the installed extensions by enable or disable.
             </v-card-subtitle>
@@ -76,10 +82,18 @@ import { computed, onMounted, ref } from "vue";
 import { useStore } from "../store";
 import { log } from "../helper";
 import EditTextField from "../components/config/EditTextField.vue";
+import TipPopover from "../components/TipPopover.vue";
+
+const registryTip =
+  "Webinizer supports interacting (i.e., publishing, fetching, etc.) with a registry that is <b>npm</b> compatible to manage migrated projects as an experimental feature.\n\nAs this is under construction and unstable, to experience this feature, it's recommended to setup a private registry locally using tools such as <a href='https://github.com/verdaccio/verdaccio' target='_blank'>verdaccio</a> instead of using a public registry directly.";
+
+const extensionTip =
+  "Webinizer provides an extension mechanism to extend the capabilities of the tool. More details are available <a href='https://github.com/intel/webinizer/tree/main#extending-webinizer' target='_blank'>here</a>.";
 
 const store = useStore();
 
 const registryUpdateFailure = ref(false);
+
 const settings = computed(() => store.state.webinizerSettings);
 
 const registryRules = [

@@ -26,87 +26,30 @@
     </template>
 
     <template v-if="editStatus === EditStatus.DEFAULT && props.needTip && props.tipContent" #append>
-      <div ref="helpPopover" class="helpPopover" @mouseover="popoverPosition()">
-        <v-icon size="x-small" variant="flat" icon="mdi-help-circle-outline"></v-icon>
-        <div ref="popover" class="popover">
-          <div ref="leftBar" class="leftBar"><span ref="popoverArrow"></span></div>
-          <div>
-            <div ref="tips" class="tips">Tips</div>
-            <div
-              ref="description"
-              v-dompurify-html="props.tipContent || ''"
-              class="description"
-              style="white-space: pre-line"></div>
-          </div>
-        </div></div
-    ></template>
+      <TipPopover type="M" :tip-content="props.tipContent || ''"></TipPopover>
+    </template>
 
     <template v-else-if="editStatus === EditStatus.UPDATING" #append>
       <v-fade-transition leave-absolute>
         <v-progress-circular size="24" color="info" indeterminate></v-progress-circular>
       </v-fade-transition>
-      <div
-        v-if="props.needTip && props.tipContent"
-        ref="helpPopover"
-        class="helpPopover"
-        @mouseover="popoverPosition()">
-        <v-icon size="x-small" variant="flat" icon="mdi-help-circle-outline"></v-icon>
-        <div ref="popover" class="popover">
-          <div ref="leftBar" class="leftBar"><span ref="popoverArrow"></span></div>
-          <div>
-            <div ref="tips" class="tips">Tips</div>
-            <div
-              ref="description"
-              v-dompurify-html="props.tipContent || ''"
-              class="description"
-              style="white-space: pre-line"></div>
-          </div>
-        </div>
-      </div>
+      <template v-if="props.needTip && props.tipContent">
+        <TipPopover type="M" :tip-content="props.tipContent || ''"></TipPopover
+      ></template>
     </template>
 
     <template v-else-if="editStatus === EditStatus.DONE" #append>
       <v-icon large icon="mdi-check-bold" color="blue"></v-icon>
-      <div
-        v-if="props.needTip && props.tipContent"
-        ref="helpPopover"
-        class="helpPopover"
-        @mouseover="popoverPosition()">
-        <v-icon size="x-small" variant="flat" icon="mdi-help-circle-outline"></v-icon>
-        <div v-if="props.needTip && props.tipContent" ref="popover" class="popover">
-          <div ref="leftBar" class="leftBar"><span ref="popoverArrow"></span></div>
-          <div>
-            <div ref="tips" class="tips">Tips</div>
-            <div
-              ref="description"
-              v-dompurify-html="props.tipContent || ''"
-              class="description"
-              style="white-space: pre-line"></div>
-          </div>
-        </div>
-      </div>
+      <template v-if="props.needTip && props.tipContent">
+        <TipPopover type="M" :tip-content="props.tipContent || ''"></TipPopover
+      ></template>
     </template>
 
     <template v-else-if="editStatus === EditStatus.FAIL" #append>
       <v-icon large icon="mdi-alert-circle-outline" color="#f5381b"></v-icon>
-      <div
-        v-if="props.needTip && props.tipContent"
-        ref="helpPopover"
-        class="helpPopover"
-        @mouseover="popoverPosition()">
-        <v-icon size="x-small" variant="flat" icon="mdi-help-circle-outline"></v-icon>
-        <div v-if="props.needTip && props.tipContent" ref="popover" class="popover">
-          <div ref="leftBar" class="leftBar"><span ref="popoverArrow"></span></div>
-          <div>
-            <div ref="tips" class="tips">Tips</div>
-            <div
-              ref="description"
-              v-dompurify-html="props.tipContent || ''"
-              class="description"
-              style="white-space: pre-line"></div>
-          </div>
-        </div>
-      </div>
+      <template v-if="props.needTip && props.tipContent">
+        <TipPopover type="M" :tip-content="props.tipContent || ''"></TipPopover
+      ></template>
     </template>
   </v-text-field>
 
@@ -156,6 +99,7 @@
  */
 import Alert from "../Alert.vue";
 import { nextTick, ref, watch, onMounted } from "vue";
+import TipPopover from "../TipPopover.vue";
 
 const props = defineProps<{
   noNeedSaveInstantly?: boolean;
@@ -191,32 +135,6 @@ const editNewItem = ref("");
 const field = ref<any>();
 const editValue = ref(props.value);
 const editStatus = ref(EditStatus.DEFAULT);
-
-const helpPopover = ref<HTMLDivElement>();
-const popover = ref<HTMLDivElement>();
-const popoverArrow = ref<HTMLSpanElement>();
-const leftBar = ref<HTMLDivElement>();
-const tips = ref<HTMLDivElement>();
-const description = ref<HTMLDivElement>();
-
-function popoverPosition() {
-  let left = helpPopover.value?.getBoundingClientRect().left || 0;
-  let top = helpPopover.value?.getBoundingClientRect().top || 0;
-  let height = popover.value?.clientHeight || 0;
-  left = left + 20;
-  let topnew = top - height / 2.0 + 3;
-
-  if (left && top && height) {
-    let style = `left: ${left}px; top: ${topnew}px`;
-    popover.value?.setAttribute("style", style);
-    popoverArrow.value?.setAttribute("style", `left: ${left + 2}px; top: ${top + 4}px`);
-  }
-
-  if (left * top * height == 0) {
-    popover.value?.setAttribute("style", "left: 50%; top: 50%; transform: translate(-50%, -50%);");
-    leftBar.value?.setAttribute("style", "display: none;");
-  }
-}
 
 function cancelItem() {
   emit("cancelAdd");
@@ -263,17 +181,6 @@ async function onblur_handler() {
     editStatus.value = EditStatus.UPDATING;
   }
 }
-
-onMounted(() => {
-  return {
-    helpPopover,
-    popover,
-    popoverArrow,
-    leftBar,
-    tips,
-    description,
-  };
-});
 
 watch(
   () => props.value,
