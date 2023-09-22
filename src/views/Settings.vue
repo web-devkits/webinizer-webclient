@@ -26,7 +26,6 @@
               :value="settings?.registry"
               :rules="registryRules"
               :has-error="registryUpdateFailure"
-              :need-tip="true"
               @change-with-type="saveRegistrySettings"></EditTextField>
           </v-card-text>
         </v-card>
