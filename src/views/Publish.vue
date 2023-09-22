@@ -32,8 +32,7 @@
 
     <template v-if="disabledPublishBtn">
       <span
-        title="Add a valid registry address in the Settings page to enable publishing a project to
-      registry.">
+        title="Add a valid registry address in the Settings page to enable publishing a project to registry.">
         <v-btn tile disabled color="grey" class="mainbtn" append-icon="mdi-publish-off">
           PUBLISH
         </v-btn>
