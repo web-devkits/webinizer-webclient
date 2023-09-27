@@ -260,6 +260,17 @@ export interface ProjectProfile extends IJsonObject {
   version?: string;
 }
 
+export interface ProjectPerson {
+  name: string;
+  email?: string;
+  url?: string;
+}
+
+export interface ProjectRepository {
+  type: string;
+  url: string;
+}
+
 export interface ProjectBuildTargetConfig {
   builders?: Builder[];
   envs?: ProjectEnv;
@@ -284,6 +295,12 @@ export interface ProjectConfig extends IJsonObject {
   overallEnvs?: ProjectEnv;
   resolutions?: PkgResolution[];
   requiredBy?: { [k: string]: string };
+  author?: ProjectPerson;
+  keywords?: string;
+  repository?: ProjectRepository;
+  homepage?: string;
+  bugs?: string;
+  license?: string;
 }
 
 //////////////////////////////////////////////////////////////////

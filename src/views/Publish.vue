@@ -30,6 +30,101 @@
       </v-expansion-panels>
     </div>
 
+    <div class="g1x2">
+      <div class="bl mr-6 mb-4">
+        <v-card variant="elevated" class="text-left" flat>
+          <v-card-item class="mb-10"><v-card-title> Author Info </v-card-title></v-card-item>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Name"
+              type-name="name"
+              :tip-content="'Please enter your name here.'"
+              :value="config?.author?.name"
+              @change-with-type="saveAuthorConfig"></EditTextField>
+          </v-card-text>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Email"
+              type-name="email"
+              :tip-content="'Please enter your email address.'"
+              :value="config?.author?.email"
+              :rules="configFieldRulesObject.emailFieldRules"
+              @change-with-type="saveAuthorConfig"></EditTextField>
+          </v-card-text>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="URL"
+              type-name="url"
+              :tip-content="'Please enter the URL to your homepage if any.'"
+              :value="config?.author?.url"
+              :rules="configFieldRulesObject.urlFieldRules"
+              @change-with-type="saveAuthorConfig"></EditTextField>
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <div class="bl mb-4">
+        <v-card variant="elevated" class="text-left" flat>
+          <v-card-item class="mb-10"><v-card-title> Package Info </v-card-title></v-card-item>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Keywords"
+              type-name="keywords"
+              :tip-content="'Please enter the keywords for the project and separate each keyword with a comma.'"
+              :value="config?.keywords"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Repository"
+              type-name="repository"
+              :tip-content="'Please enter the URL to the project git repository.'"
+              :value="config?.repository?.url"
+              :rules="configFieldRulesObject.repositoryFieldRules"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Homepage"
+              type-name="homepage"
+              :tip-content="'Please enter the URL to the project homepage.'"
+              :value="config?.homepage"
+              :rules="configFieldRulesObject.urlFieldRules"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Bugs"
+              type-name="bugs"
+              :tip-content="'Please enter the url to your project\'s issue tracker.'"
+              :value="config?.bugs"
+              :rules="configFieldRulesObject.urlFieldRules"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="License"
+              type-name="license"
+              :tip-content="'Please enter your project license.'"
+              :value="config?.license"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+        </v-card>
+      </div>
+    </div>
+
     <template v-if="disabledPublishBtn">
       <span
         title="Add a valid registry address in the Settings page to enable publishing a project to registry.">
@@ -73,6 +168,7 @@ import { getProjectName } from "../common/utility/utility";
 import { useToast } from "vue-toastification";
 import Alert from "../components/Alert.vue";
 import Markdown from "../components/Markdown.vue";
+import EditTextField from "../components/config/EditTextField.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -103,6 +199,49 @@ const projectSummary = `Do you want to publish the project ${config.value?.name 
   config.value?.version || ""
 } to the registry ${settings.value?.registry || ""} ?`;
 
+const configFieldRulesObject = {
+  requiredFieldRules: [
+    (value: string) => {
+      if (value && value.trim()?.length > 0) return true;
+      return "This field is required.";
+    },
+  ],
+
+  emailFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) {
+        if (
+          /^([0-9a-zA-Z]([-\\.\\w]*[0-9a-zA-Z])*@([0-9a-zA-Z][-\\w]*[0-9a-zA-Z]\\.)+[a-zA-Z]{2,9})$/.test(
+            value.trim()
+          )
+        )
+          return true;
+        else return "The email format is not correct.";
+      }
+    },
+  ],
+
+  urlFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) {
+        if (/^(https|http):\/\//.test(value.trim())) return true;
+        return "The URL address must be full url, starting with 'http://' or 'https://'.";
+      }
+      return true;
+    },
+  ],
+
+  repositoryFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) {
+        if (/^(https|https\+git|git\+https|git):\/\//.test(value.trim())) return true;
+        else
+          return "The URL format of the git repository is not correct. Please start with https:// or git://.";
+      }
+    },
+  ],
+};
+
 function showAlert() {
   // show project summary alert to users before publishing to the registry
   alert.value = true;
@@ -116,6 +255,31 @@ async function publish() {
   } finally {
     alert.value = false;
   }
+}
+
+async function saveConfig(configToMerge?: { [k: string]: unknown }) {
+  try {
+    if (configToMerge) {
+      await store.dispatch("saveProjectConfig", configToMerge);
+    } else {
+      await store.dispatch("saveProjectConfig");
+    }
+  } catch (error) {
+    log.errMsgNCuz(error);
+  }
+}
+
+async function saveAuthorConfig(type: string, value: string | undefined) {
+  const newAuthorConfig =
+    config.value && config.value.author
+      ? Object.assign({}, config.value.author, { [type]: value })
+      : { [type]: value };
+  return saveConfig({ author: newAuthorConfig });
+}
+
+async function saveProjectConfig(type: string, value: string | undefined) {
+  if (type === "repository") return saveConfig({ repository: { type: "git", url: value } });
+  return saveConfig({ [type]: value });
 }
 
 onMounted(async () => {
