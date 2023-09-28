@@ -6,6 +6,9 @@ for instructions.
 
 ## Status
 
-Webinizer and Webinizer-client is a BETA project and is not yet fully production ready, although we encourage usage and experimentation. Support bandwidth is limited, and we will focus on well documented [issues], ideally with test cases. We always welcome contributions, for more detail see [CONTRIBUTING.md](CONTRIBUTING.md). Caveat Emptor.
+Webinizer and Webinizer-client is a BETA project and is not yet fully production ready, although we
+encourage usage and experimentation. Support bandwidth is limited, and we will focus on well
+documented [issues], ideally with test cases. We always welcome contributions, for more detail see
+[CONTRIBUTING.md](CONTRIBUTING.md). Caveat Emptor.
 
 [issues]: https://github.com/intel/webinizer-webclient/issues
