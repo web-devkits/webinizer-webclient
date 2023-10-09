@@ -68,7 +68,7 @@
 
       <div class="bl">
         <v-card variant="elevated" class="text-left" flat>
-          <v-card-item class="mb-10"><v-card-title> Package Info </v-card-title></v-card-item>
+          <v-card-item class="mb-10"><v-card-title> Package info </v-card-title></v-card-item>
           <v-card-text>
             <EditTextField
               need-tip
