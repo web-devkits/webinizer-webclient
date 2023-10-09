@@ -98,7 +98,7 @@ const settings = computed(() => store.state.webinizerSettings);
 const registryRules = [
   (value: string) => {
     if (value && value.trim()) {
-      if (value.trim().startsWith("http://") || value.trim().startsWith("https://")) return true;
+      if (/^(https|http):\/\//.test(value.trim())) return true;
       return "Registry address must be full url, starting with 'http://' or 'https://'.";
     }
     return true;
