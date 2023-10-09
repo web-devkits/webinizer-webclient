@@ -585,10 +585,9 @@ function formatLogContent(content: string): string {
   const patternArr = new Map<string, RegExp>([
     ["timeReg", /[0-2][0-9]:[0-5][0-9]:[0-5][0-9]/g],
     ["typeReg", /(info|warn|error)/g],
-    [
-      "builderReg",
-      /(CMakeBuildStep|ConfigureBuildStep|MakeBuildStep|EmccBuildStep|NativeCommand|project)/g,
-    ],
+    // each builder will be decorated with the color from `chalk`
+    // module, and its color tag is `\u001b[92m`
+    ["builderReg", /\\u001b\[92m(\w+)/],
     ["contentReg", /\s[a-zA-Z]*\s.*/g],
   ]);
 
@@ -611,13 +610,20 @@ function formatLogContent(content: string): string {
         switch (pattern) {
           case "timeReg":
           case "typeReg":
-          case "builderReg":
             logContentStr = logContentStr.concat(
               "[",
               lineContent.match(patternArr.get(pattern)!)![0],
               "] "
             );
             break;
+          case "builderReg": {
+            const match = lineContent.match(patternArr.get(pattern)!);
+            if (match) {
+              logContentStr = logContentStr.concat("[", match[1], "] ");
+            }
+            break;
+          }
+
           default:
             logContentStr = logContentStr.concat(lineContent.match(patternArr.get(pattern)!)![0]);
             break;
