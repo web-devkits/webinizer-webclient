@@ -33,7 +33,7 @@
     <div class="g1x2 mb-8">
       <div class="bl mr-6">
         <v-card variant="elevated" class="text-left" flat>
-          <v-card-item class="mb-10"><v-card-title> Author Info </v-card-title></v-card-item>
+          <v-card-item class="mb-10"><v-card-title> Author info </v-card-title></v-card-item>
           <v-card-text>
             <EditTextField
               need-tip
