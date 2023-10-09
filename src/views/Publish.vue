@@ -30,7 +30,7 @@
       </v-expansion-panels>
     </div>
 
-    <div class="g1x2">
+    <div class="g1x2 mb-8">
       <div class="bl mr-6 mb-4">
         <v-card variant="elevated" class="text-left" flat>
           <v-card-item class="mb-10"><v-card-title> Author Info </v-card-title></v-card-item>
