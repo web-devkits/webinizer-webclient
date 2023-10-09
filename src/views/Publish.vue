@@ -218,6 +218,7 @@ const configFieldRulesObject = {
           return true;
         else return "The email format is not correct.";
       }
+      return true;
     },
   ],
 
@@ -238,6 +239,7 @@ const configFieldRulesObject = {
         else
           return "The URL format of the git repository is not correct. Please start with https:// or git://.";
       }
+      return true;
     },
   ],
 };
