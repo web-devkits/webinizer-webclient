@@ -98,7 +98,7 @@
     @typescript-eslint/no-unused-vars
  */
 import Alert from "../Alert.vue";
-import { nextTick, ref, watch, onMounted } from "vue";
+import { nextTick, ref, watch } from "vue";
 import TipPopover from "../TipPopover.vue";
 
 const props = defineProps<{

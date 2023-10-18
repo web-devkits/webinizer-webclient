@@ -20,7 +20,7 @@ const toast = useToast();
 // FIXME: no hard code here
 // We assume the backend is in the same host, i.e. in the same docker instance
 // And we use http protocol with port 16666
-const API_SERVER = `http://${location.hostname}:16666`;
+export const API_SERVER = `http://${location.hostname}:16666`;
 
 export const enum ActionsTypes {
   BuilderArgsChange = 1,
@@ -301,6 +301,7 @@ export interface ProjectConfig extends IJsonObject {
   homepage?: string;
   bugs?: string;
   license?: string;
+  img?: string;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -748,6 +749,17 @@ export async function uploadProjectFile(formData: FormData): Promise<ProjectAddR
   return response.data as ProjectAddResult;
 }
 
+export async function uploadProjectIcon(root: string, formData: FormData): Promise<string> {
+  log.info(">>> uploadProjectIcon", formData);
+  const response = await axios.post(
+    `${API_SERVER}/api/projects/${encodeURIComponent(root)}/icons`,
+    formData
+  );
+  log.info("<<< uploadProjectIcon", response.data);
+  response.data.path = decodeURIComponent(response.data.path);
+  return response.data.iconPath as string;
+}
+
 export async function cloneProjectFromRemote(
   repoPath: string,
   config?: { [k: string]: unknown }
@@ -809,4 +821,12 @@ export async function updateWebinizerSettings(
   const response = await axios.post(`${API_SERVER}/api/settings`, { settingParts });
   log.info("<<< update webinizer settings", response);
   return response.data as WebinizerSettings;
+}
+
+export async function getAllAvailableIcons(root?: string): Promise<string[]> {
+  log.info(">>> get all icons of the project", root);
+  const params = { root: encodeURIComponent(root || "") };
+  const response = await axios.get(`${API_SERVER}/api/projects/icons`, { params });
+  log.info("<<< get all icons of the project", response);
+  return response.data as string[];
 }
