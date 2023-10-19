@@ -273,6 +273,7 @@
             <div class="pr-4 mt-n4 align-self-baseline flex-grow-0 flex-shrink-0">
               <Icons
                 show-action
+                :exist-upload-icon="existUploadIcon"
                 :icons="icons"
                 :selected-icon="selectedIcon"
                 :upload-icon="uploadIcon"
@@ -280,7 +281,8 @@
                 @change="selectIconHandler"
                 @clear="uploadIcon = []"
                 @get-icons="getAvailableIcons"
-                @upload-immediately="uploadProjectIcon"></Icons>
+                @upload-immediately="uploadProjectIcon"
+                @remove-icon="removeIcon"></Icons>
             </div>
             <div class="flex-grow-1 flex-shrink-0">
               <div class="g1x2r" style="grid-column-gap: 1rem">
@@ -524,7 +526,6 @@ const toast = useToast();
 const route = useRoute();
 const store = useStore();
 const router = useRouter();
-
 let deleteIdx = -1;
 const projectChunkSize = 512 * 1024;
 const localPrefixStr = "[ Local ] - ";
@@ -596,6 +597,7 @@ const selectedIcon = ref(config.value?.img);
 const projectPool = computed(() => store.state.projectsPool);
 const settings = computed(() => store.state.webinizerSettings);
 const icons = computed(() => store.state.availableIcons);
+const existUploadIcon = computed(() => icons.value?.some((item) => item.uploaded === true));
 
 const dependencySelectOptions = computed(() => {
   // local projects
@@ -893,6 +895,9 @@ async function uploadProjectIcon() {
 
   // trigger to select this new uploaded icon
   selectedIcon.value = uploadedIconPath;
+  uploadIcon.value = [];
+  // refresh icons list
+  await getAvailableIcons();
 }
 
 async function cloneProject() {
@@ -937,6 +942,10 @@ async function submitProject() {
     default:
       break;
   }
+}
+
+async function removeIcon(url: string) {
+  await store.dispatch("removeIcon", url);
 }
 
 async function getAvailableIcons() {

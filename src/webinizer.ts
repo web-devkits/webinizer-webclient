@@ -411,6 +411,11 @@ export interface WebinizerSettings {
   extensions?: { [k: string]: IExtensionSettingsJson };
 }
 
+export interface Icons {
+  url: string;
+  uploaded: boolean;
+}
+
 //////////////////////////////////////////////////////////////////
 // APIs
 //////////////////////////////////////////////////////////////////
@@ -823,10 +828,25 @@ export async function updateWebinizerSettings(
   return response.data as WebinizerSettings;
 }
 
-export async function getAllAvailableIcons(root?: string): Promise<string[]> {
+export async function getAllAvailableIcons(root?: string): Promise<Icons[]> {
   log.info(">>> get all icons of the project", root);
   const params = { root: encodeURIComponent(root || "") };
   const response = await axios.get(`${API_SERVER}/api/projects/icons`, { params });
   log.info("<<< get all icons of the project", response);
-  return response.data as string[];
+  return response.data as Icons[];
+}
+
+/**
+ *
+ * @param root the project root path
+ * @param img the url of this icon
+ * @returns the icons object array after deleting
+ */
+export async function removeIcon(root: string, img: string): Promise<Icons[]> {
+  log.info(">>> remove the icon of the project", img);
+  const response = await axios.delete(
+    `${API_SERVER}/api/projects/${encodeURIComponent(root)}/icons/${encodeURIComponent(img)}`
+  );
+  log.info("<<< remove the icon of the project", response);
+  return response.data as Icons[];
 }

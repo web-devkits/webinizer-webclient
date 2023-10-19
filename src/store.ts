@@ -31,7 +31,7 @@ export interface State {
   depConfigs?: { [k: string]: webinizer.ProjectConfig };
   displayMode?: webinizer.DisplayMode;
   webinizerSettings?: webinizer.WebinizerSettings;
-  availableIcons?: string[];
+  availableIcons?: webinizer.Icons[];
 }
 
 export const key: InjectionKey<Store<State>> = Symbol();
@@ -168,7 +168,7 @@ export const store = createStore<State>({
       state.webinizerSettings = settings;
     },
 
-    setAvailableIcons(state: State, icons: string[]) {
+    setAvailableIcons(state: State, icons: webinizer.Icons[]) {
       state.availableIcons = icons;
     },
   },
@@ -536,6 +536,15 @@ export const store = createStore<State>({
     async getAllAvailableIcons({ commit, state }) {
       try {
         const icons = await webinizer.getAllAvailableIcons(state.root);
+        commit("setAvailableIcons", icons);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
+    async removeIcon({ commit, state }, img: string) {
+      try {
+        const icons = await webinizer.removeIcon(state.root, img);
         commit("setAvailableIcons", icons);
       } catch (error) {
         throw error as Error;
