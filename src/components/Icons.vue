@@ -1,3 +1,9 @@
+<!--
+  *  Copyright (C) 2023 Intel Corporation. All rights reserved.
+  *  Licensed under the Apache License 2.0. See LICENSE in the project root for license information.
+  *  SPDX-License-Identifier: Apache-2.0
+  -->
+
 <template>
   <v-menu v-model="iconsMenu" :close-on-content-click="false" location="end">
     <template #activator="{ props }">
@@ -16,6 +22,7 @@
         ><v-icon class="ml-n2" icon="mdi-menu"></v-icon>
         <v-toolbar-title>Select icon</v-toolbar-title>
         <v-spacer></v-spacer>
+        <!-- only when project is created and users have uploaded icons -->
         <template v-if="propsVal.showAction && propsVal.existUploadIcon">
           <v-btn v-if="!inEditingMode" variant="text" @click="inEditingMode = true">edit</v-btn>
           <v-btn v-else class="mr-n2" variant="text" @click="inEditingMode = false"
@@ -110,7 +117,11 @@ const propsVal = defineProps<{
   icons: Icons[] | undefined;
   selectedIcon: string | undefined;
   uploadIcon: File[];
+  // whether to show the upload button
+  // 'true' when project root is filled
   showAction?: boolean;
+  // the flag to decide whether to show the edit button
+  // 'true' when users have uploaded icons for this project
   existUploadIcon?: boolean;
 }>();
 
