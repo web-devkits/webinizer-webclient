@@ -55,8 +55,15 @@
           </div>
           <div class="pi">
             <div class="pti">
-              <div v-if="lib.img && lib.img.length > 0">
-                <img :src="lib.img" />
+              <div v-if="lib.img && Object.keys(lib.img).length > 0">
+                <img
+                  :src="
+                    lib.img?.isUploaded
+                      ? prefix4ProjIcon +
+                        `${encodeURIComponent(lib.path as string)}/icons/` +
+                        lib.img?.name
+                      : prefix4DefaultIcon + lib.img?.name
+                  " />
               </div>
               <h3 :title="lib.name">{{ lib.name }}</h3>
             </div>
@@ -89,7 +96,15 @@
             </div>
             <div class="project_img">
               <v-avatar size="36px" rounded="0">
-                <v-img v-if="lib.img && lib.img.length > 0" :src="lib.img"></v-img>
+                <v-img
+                  v-if="lib.img && Object.keys(lib.img).length > 0"
+                  :src="
+                    lib.img?.isUploaded
+                      ? prefix4ProjIcon +
+                        `${encodeURIComponent(lib.path as string)}/icons/` +
+                        lib.img?.name
+                      : prefix4DefaultIcon + lib.img?.name
+                  "></v-img>
               </v-avatar>
             </div>
             <div class="project_name">
@@ -143,7 +158,7 @@ import { computed, onMounted, ref } from "vue";
 import { useStore } from "../store";
 import { useRouter } from "vue-router";
 import { log } from "../helper";
-import { DisplayMode } from "../webinizer";
+import { API_SERVER, DisplayMode } from "../webinizer";
 
 const store = useStore();
 const router = useRouter();
@@ -168,6 +183,9 @@ const totalPageNum = computed(() =>
     ? store.state.projectsPool.length / eachPageProjNum.value
     : Math.trunc(store.state.projectsPool.length / eachPageProjNum.value) + 1
 );
+
+const prefix4DefaultIcon = `${API_SERVER}/assets/icons/default/`;
+const prefix4ProjIcon = `${API_SERVER}/api/projects/`;
 
 function showAlert(idx: number) {
   deleteIdx = idx;

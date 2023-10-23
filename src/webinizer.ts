@@ -254,7 +254,7 @@ export interface ProjectProfile extends IJsonObject {
   name?: string;
   path?: string;
   desc?: string;
-  img?: string;
+  img?: ProjectIcon;
   category?: string;
   id?: number;
   version?: string;
@@ -301,7 +301,7 @@ export interface ProjectConfig extends IJsonObject {
   homepage?: string;
   bugs?: string;
   license?: string;
-  img?: string;
+  img?: ProjectIcon;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -411,9 +411,9 @@ export interface WebinizerSettings {
   extensions?: { [k: string]: IExtensionSettingsJson };
 }
 
-export interface Icons {
-  url: string;
-  uploaded: boolean;
+export interface ProjectIcon {
+  name: string;
+  isUploaded: boolean;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -762,7 +762,7 @@ export async function uploadProjectIcon(root: string, formData: FormData): Promi
   );
   log.info("<<< uploadProjectIcon", response.data);
   response.data.path = decodeURIComponent(response.data.path);
-  return response.data.iconPath as string;
+  return response.data.iconName as string;
 }
 
 export async function cloneProjectFromRemote(
@@ -828,12 +828,12 @@ export async function updateWebinizerSettings(
   return response.data as WebinizerSettings;
 }
 
-export async function getAllAvailableIcons(root?: string): Promise<Icons[]> {
+export async function getAllAvailableIcons(root?: string): Promise<ProjectIcon[]> {
   log.info(">>> get all icons of the project", root);
   const params = { root: encodeURIComponent(root || "") };
   const response = await axios.get(`${API_SERVER}/api/projects/icons`, { params });
   log.info("<<< get all icons of the project", response);
-  return response.data as Icons[];
+  return response.data as ProjectIcon[];
 }
 
 /**
@@ -842,11 +842,11 @@ export async function getAllAvailableIcons(root?: string): Promise<Icons[]> {
  * @param img the url of this icon
  * @returns the icons object array after deleting
  */
-export async function removeIcon(root: string, img: string): Promise<Icons[]> {
+export async function removeIcon(root: string, img: string): Promise<ProjectIcon[]> {
   log.info(">>> remove the icon of the project", img);
   const response = await axios.delete(
     `${API_SERVER}/api/projects/${encodeURIComponent(root)}/icons/${encodeURIComponent(img)}`
   );
   log.info("<<< remove the icon of the project", response);
-  return response.data as Icons[];
+  return response.data as ProjectIcon[];
 }

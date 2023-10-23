@@ -502,6 +502,7 @@ import {
   search as searchRegistry,
   ConfigParameterTypes,
   uploadProjectIcon as fireUploadIconRequest,
+  ProjectIcon,
 } from "../webinizer";
 import { useToast } from "vue-toastification";
 import lodash from "lodash";
@@ -597,7 +598,7 @@ const selectedIcon = ref(config.value?.img);
 const projectPool = computed(() => store.state.projectsPool);
 const settings = computed(() => store.state.webinizerSettings);
 const icons = computed(() => store.state.availableIcons);
-const existUploadIcon = computed(() => icons.value?.some((item) => item.uploaded === true));
+const existUploadIcon = computed(() => icons.value?.some((item) => item.isUploaded === true));
 
 const dependencySelectOptions = computed(() => {
   // local projects
@@ -649,6 +650,8 @@ const dependentProjectNameToDisplay = computed(() => {
 
 const queryRegistryWithDebounce = lodash.debounce(queryRegistry, 500);
 
+const prefix4ProjIcon = `${API_SERVER}/api/projects/${encodeURIComponent(root.value)}/icons/`;
+
 function confirmPackageHandler(packageNameWithVersion: string) {
   // we should split the parameter to package name for `projName`
   // and package version for `version`
@@ -683,7 +686,7 @@ function fileChangeHandler($event: Event) {
 
 function iconChangeHandler($event: Event) {
   // clear the selectedIcon value
-  selectedIcon.value = "";
+  selectedIcon.value = undefined;
   const target = $event.target as HTMLInputElement;
   if (target !== undefined && target.files) {
     if (uploadIcon.value.length > 0) {
@@ -702,20 +705,19 @@ function iconChangeHandler($event: Event) {
  *  `a.png` means word `A` ...
  */
 function bindIconAccordingToProjName(projectName: string) {
-  const iconPathPrefix = API_SERVER + "/assets/icons/default/";
   const iconFileExtends = ".png";
   const matches = projectName.match(/[a-zA-Z0-9]/);
   if (matches) {
-    return iconPathPrefix + matches[0].toLocaleLowerCase() + iconFileExtends;
+    return matches[0].toLocaleLowerCase() + iconFileExtends;
   }
   return "";
 }
 
-async function selectIconHandler(iconURL: string) {
+async function selectIconHandler(iconObj: ProjectIcon) {
   uploadIcon.value = [];
-  selectedIcon.value = iconURL;
+  selectedIcon.value = iconObj;
 
-  if (root.value) await saveConfig({ img: iconURL });
+  if (root.value) await saveConfig({ img: iconObj });
 }
 
 async function saveConfig(configToMerge?: { [k: string]: unknown }) {
@@ -869,7 +871,14 @@ async function uploadProjectFile() {
         formData.append("projectDependencies", JSON.stringify(finalDependencies.value, null, 2));
         formData.append(
           "img",
-          selectedIcon.value || bindIconAccordingToProjName(projName.value as string)
+          JSON.stringify(
+            selectedIcon.value || {
+              name: bindIconAccordingToProjName(projName.value as string),
+              isUploaded: false,
+            },
+            null,
+            2
+          )
         );
 
         await store.dispatch("uploadProjectFile", formData);
@@ -891,10 +900,10 @@ async function uploadProjectIcon() {
   let blobFile = new File([blob], `${name}`);
   let formData = new FormData();
   formData.append("file", blobFile);
-  const uploadedIconPath = await fireUploadIconRequest(root.value, formData);
+  const uploadedIconName = await fireUploadIconRequest(root.value, formData);
 
   // trigger to select this new uploaded icon
-  selectedIcon.value = uploadedIconPath;
+  selectedIcon.value = { name: uploadedIconName, isUploaded: true };
   uploadIcon.value = [];
   // refresh icons list
   await getAvailableIcons();
@@ -902,7 +911,10 @@ async function uploadProjectIcon() {
 
 async function cloneProject() {
   await store.dispatch("cloneProjectFile", {
-    img: selectedIcon.value || bindIconAccordingToProjName(projName.value as string),
+    img: selectedIcon.value || {
+      name: bindIconAccordingToProjName(projName.value as string),
+      isUploaded: false,
+    },
     name: projName.value,
     version: projVersion.value,
     desc: projDesc.value,
@@ -914,7 +926,10 @@ async function cloneProject() {
 
 async function fetchProject() {
   await store.dispatch("fetchProjectFromRegistry", {
-    img: selectedIcon.value || bindIconAccordingToProjName(projName.value as string),
+    img: selectedIcon.value || {
+      name: bindIconAccordingToProjName(projName.value as string),
+      isUploaded: false,
+    },
     name: projName.value,
     version: projVersion.value,
   });
@@ -944,8 +959,11 @@ async function submitProject() {
   }
 }
 
-async function removeIcon(url: string) {
-  await store.dispatch("removeIcon", url);
+async function removeIcon(iconObj: ProjectIcon) {
+  // only uploaded icons can be removed
+  if (iconObj.isUploaded) {
+    await store.dispatch("removeIcon", prefix4ProjIcon + iconObj.name);
+  }
 }
 
 async function getAvailableIcons() {

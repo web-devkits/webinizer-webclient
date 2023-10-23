@@ -31,7 +31,7 @@ export interface State {
   depConfigs?: { [k: string]: webinizer.ProjectConfig };
   displayMode?: webinizer.DisplayMode;
   webinizerSettings?: webinizer.WebinizerSettings;
-  availableIcons?: webinizer.Icons[];
+  availableIcons?: webinizer.ProjectIcon[];
 }
 
 export const key: InjectionKey<Store<State>> = Symbol();

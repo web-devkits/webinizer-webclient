@@ -9,7 +9,13 @@
     <template #activator="{ props }">
       <v-avatar
         style="cursor: pointer"
-        :image="propsVal.selectedIcon"
+        :image="
+          propsVal.selectedIcon
+            ? propsVal.selectedIcon?.isUploaded
+              ? prefix4ProjIcon + propsVal.selectedIcon?.name
+              : prefix4DefaultIcon + propsVal.selectedIcon?.name
+            : ''
+        "
         color="indigo"
         v-bind="props"
         @click="$emit('getIcons')"
@@ -65,22 +71,22 @@
               aspect-ratio="1"
               cover
               class="bg-grey-lighten-2"
-              :src="obj.url"
+              :src="obj?.isUploaded ? prefix4ProjIcon + obj?.name : prefix4DefaultIcon + obj?.name"
               @click="
                 () => {
                   if (inEditingMode) return;
-                  else emit('change', obj.url);
+                  else emit('change', obj);
                 }
               ">
               <!-- only the icon that is uploaded and not used can be removed -->
               <v-badge
-                v-if="inEditingMode && obj.uploaded && obj.url !== propsVal.selectedIcon"
+                v-if="inEditingMode && obj.isUploaded && obj.name !== propsVal.selectedIcon?.name"
                 floating
                 color="error"
                 offset-x="-50"
                 offset-y="5"
                 ><template #badge
-                  ><span style="cursor: pointer" @click.stop="$emit('removeIcon', obj.url)"
+                  ><span style="cursor: pointer" @click.stop="$emit('removeIcon', obj)"
                     >X</span
                   ></template
                 ></v-badge
@@ -98,11 +104,18 @@
   </v-menu>
 </template>
 <script lang="ts" setup>
-import { ref, watch } from "vue";
-import { Icons } from "../webinizer";
+import { useStore } from "../store";
+import { computed, ref, watch } from "vue";
+import { API_SERVER, ProjectIcon } from "../webinizer";
 
+const store = useStore();
 const iconsMenu = ref(false);
 const inEditingMode = ref(false);
+
+const root = computed(() => store.state.root);
+
+const prefix4DefaultIcon = `${API_SERVER}/assets/icons/default/`;
+const prefix4ProjIcon = `${API_SERVER}/api/projects/${encodeURIComponent(root.value)}/icons/`;
 
 const rules = [
   /* eslint-disable */
@@ -114,8 +127,8 @@ const rules = [
 ];
 
 const propsVal = defineProps<{
-  icons: Icons[] | undefined;
-  selectedIcon: string | undefined;
+  icons: ProjectIcon[] | undefined;
+  selectedIcon: ProjectIcon | undefined;
   uploadIcon: File[];
   // whether to show the upload button
   // 'true' when project root is filled
@@ -127,11 +140,11 @@ const propsVal = defineProps<{
 
 const emit = defineEmits<{
   (e: "upload", value: Event): void;
-  (e: "change", value: string): void;
+  (e: "change", value: ProjectIcon): void;
   (e: "clear"): void;
   (e: "getIcons"): void;
   (e: "uploadImmediately"): void;
-  (e: "removeIcon", value: string): void;
+  (e: "removeIcon", value: ProjectIcon): void;
 }>();
 
 watch(
