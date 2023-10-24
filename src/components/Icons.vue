@@ -50,6 +50,14 @@
               :show-size="1000"
               @click:clear="$emit('clear')"
               @change="$emit('upload', $event)">
+              <template #selection="{ fileNames }">
+                <template v-for="fileName in fileNames" :key="fileName">
+                  <v-chip size="small" label color="blue" class="me-1">
+                    {{ fileName }}
+                  </v-chip>
+                </template>
+              </template>
+
               <template #append>
                 <v-btn
                   v-if="showAction"
@@ -156,4 +164,12 @@ watch(
   }
 );
 </script>
-<style lang=""></style>
+
+<style scoped>
+.v-field__field > .v-file-input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+}
+</style>

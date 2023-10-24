@@ -120,7 +120,15 @@
                   validate-on="input"
                   accept=".zip"
                   variant="outlined"
-                  @change="fileChangeHandler($event)"></v-file-input>
+                  @change="fileChangeHandler($event)">
+                  <template #selection="{ fileNames }">
+                    <template v-for="fileName in fileNames" :key="fileName">
+                      <v-chip size="small" label color="blue" class="me-1">
+                        {{ fileName }}
+                      </v-chip>
+                    </template>
+                  </template></v-file-input
+                >
                 <v-progress-linear
                   color="blue"
                   :model-value="refUploadProgress"></v-progress-linear>
