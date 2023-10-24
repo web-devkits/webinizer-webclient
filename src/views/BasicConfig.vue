@@ -598,7 +598,10 @@ const selectedIcon = ref(config.value?.img);
 const projectPool = computed(() => store.state.projectsPool);
 const settings = computed(() => store.state.webinizerSettings);
 const icons = computed(() => store.state.availableIcons);
-const existUploadIcon = computed(() => icons.value?.some((item) => item.isUploaded === true));
+const existUploadIcon = computed(
+  () =>
+    icons.value?.some((item) => item.isUploaded === true && selectedIcon.value?.name !== item.name)
+);
 
 const dependencySelectOptions = computed(() => {
   // local projects
