@@ -168,7 +168,7 @@ export const store = createStore<State>({
       state.webinizerSettings = settings;
     },
 
-    setAvailableIcons(state: State, icons: webinizer.Icons[]) {
+    setAvailableIcons(state: State, icons: webinizer.ProjectIcon[]) {
       state.availableIcons = icons;
     },
   },

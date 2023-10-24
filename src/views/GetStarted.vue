@@ -356,6 +356,7 @@ onMounted(async () => {
 }
 .pti div img {
   height: 128px;
+  width: 128px;
   border-radius: 12%;
   border: 1px solid var(--black-03);
 }
