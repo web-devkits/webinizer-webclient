@@ -45,6 +45,11 @@
 </template>
 
 <script setup lang="ts">
+/*
+  eslint-disable
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unused-vars
+ */
 import { ref, watch, reactive } from "vue";
 import { cloneDeep } from "lodash";
 import EditTextField from "./EditTextField.vue";
@@ -58,19 +63,13 @@ const props = defineProps<{
   needAdd?: boolean;
   needTip?: boolean;
   tipContent?: string;
+  rules?: any;
 }>();
 
 const emit = defineEmits<{
   (e: "change", value: string[] | undefined): void;
   (e: "delete"): void;
 }>();
-
-const rules = [
-  (value: string) => {
-    if (value && value.trim()?.length > 0) return true;
-    return "Field is required.";
-  },
-];
 
 const isAdding = ref(false);
 const initValArr = reactive({ valArr: cloneDeep(props.value) || [] });
@@ -89,7 +88,6 @@ function deleteItem(idx: number) {
 
 watch(
   () => props.value,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (newVal, _) => {
     initValArr.valArr = cloneDeep(newVal) || [];
   }

@@ -128,6 +128,7 @@
                 :value="config?.buildTargets?.[config.target]?.preloadFiles"
                 :label="'Path to local data file'"
                 :tip-content="generateLocalDataFilesTip()"
+                :rules="localDataFileRules"
                 @change="saveProjectDataFiles"></EditTextFieldList>
             </div>
           </div>
@@ -388,6 +389,13 @@ const allConfigElemRefObjArr: ConfigElemRefType[] = [
   {
     id: ConfigElementId.Package,
     title: "Package & Native library info",
+  },
+];
+
+const localDataFileRules = [
+  (value: string) => {
+    if (value && value.trim()?.length > 0) return true;
+    return "Field is required.";
   },
 ];
 
