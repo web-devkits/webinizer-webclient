@@ -65,7 +65,12 @@ const emit = defineEmits<{
   (e: "delete"): void;
 }>();
 
-const rules = [(v: string) => !!v || "The path can't be empty!"];
+const rules = [
+  (value: string) => {
+    if (value && value.trim()?.length > 0) return true;
+    return "Field is required.";
+  },
+];
 
 const isAdding = ref(false);
 const initValArr = reactive({ valArr: cloneDeep(props.value) || [] });
