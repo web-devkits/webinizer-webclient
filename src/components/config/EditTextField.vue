@@ -230,4 +230,12 @@ watch(
 .text-readonly .popover {
   color: rgba(0 0 0 / 87%);
 }
+
+.delete-icon {
+  color: rgba(51, 51, 51, 0.5) !important;
+}
+
+.delete-icon:hover {
+  color: rgba(51, 51, 51, 1) !important;
+}
 </style>
