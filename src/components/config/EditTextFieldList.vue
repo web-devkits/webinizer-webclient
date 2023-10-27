@@ -21,7 +21,7 @@
           support-delete
           :value="initValArr.valArr[idx]"
           :label="props.label"
-          :rules="rules"
+          :rules="props.rules"
           @change="changeItem(idx, $event)"
           @delete="deleteItem(idx)"></EditTextField>
       </v-card-text>
@@ -31,7 +31,7 @@
           need-delete
           :is-adding="isAdding"
           :label="props.label"
-          :rules="rules"
+          :rules="props.rules"
           @change="changeItem(props.value !== undefined ? props.value.length : 0, $event)"
           @cancel-add="isAdding = false"></EditTextField>
       </v-card-text>
@@ -45,6 +45,11 @@
 </template>
 
 <script setup lang="ts">
+/*
+  eslint-disable
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unused-vars
+ */
 import { ref, watch, reactive } from "vue";
 import { cloneDeep } from "lodash";
 import EditTextField from "./EditTextField.vue";
@@ -58,14 +63,13 @@ const props = defineProps<{
   needAdd?: boolean;
   needTip?: boolean;
   tipContent?: string;
+  rules?: any;
 }>();
 
 const emit = defineEmits<{
   (e: "change", value: string[] | undefined): void;
   (e: "delete"): void;
 }>();
-
-const rules = [(v: string) => !!v || "The path can't be empty!"];
 
 const isAdding = ref(false);
 const initValArr = reactive({ valArr: cloneDeep(props.value) || [] });
@@ -84,7 +88,6 @@ function deleteItem(idx: number) {
 
 watch(
   () => props.value,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (newVal, _) => {
     initValArr.valArr = cloneDeep(newVal) || [];
   }
