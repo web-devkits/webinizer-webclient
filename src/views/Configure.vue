@@ -395,7 +395,7 @@ const allConfigElemRefObjArr: ConfigElemRefType[] = [
 const localDataFileRules = [
   (value: string) => {
     if (value && value.trim()?.length > 0) return true;
-    return "Field is required.";
+    return "The path can't be empty.";
   },
 ];
 

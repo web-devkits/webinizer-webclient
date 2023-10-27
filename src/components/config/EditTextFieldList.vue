@@ -21,7 +21,7 @@
           support-delete
           :value="initValArr.valArr[idx]"
           :label="props.label"
-          :rules="rules"
+          :rules="props.rules"
           @change="changeItem(idx, $event)"
           @delete="deleteItem(idx)"></EditTextField>
       </v-card-text>
@@ -31,7 +31,7 @@
           need-delete
           :is-adding="isAdding"
           :label="props.label"
-          :rules="rules"
+          :rules="props.rules"
           @change="changeItem(props.value !== undefined ? props.value.length : 0, $event)"
           @cancel-add="isAdding = false"></EditTextField>
       </v-card-text>
