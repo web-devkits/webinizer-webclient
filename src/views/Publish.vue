@@ -69,15 +69,6 @@
       <div class="bl">
         <v-card variant="elevated" class="text-left" flat>
           <v-card-item class="mb-10"><v-card-title> Package info </v-card-title></v-card-item>
-          <v-card-text>
-            <EditTextField
-              need-tip
-              label="Keywords"
-              type-name="keywords"
-              :tip-content="'Please enter the keywords for the project and separate each keyword with a comma.'"
-              :value="config?.keywords"
-              @change-with-type="saveProjectConfig"></EditTextField>
-          </v-card-text>
 
           <v-card-text>
             <EditTextField
@@ -122,6 +113,19 @@
               @change-with-type="saveProjectConfig"></EditTextField>
           </v-card-text>
         </v-card>
+
+        <div class="mt-n6">
+          <EditChipList
+            :title="'Keywords'"
+            :value="config?.keywords"
+            :default-items="['webinizer']"
+            :item-label="'New keyword'"
+            :rules="configFieldRulesObject.keywordsFieldRules"
+            :need-add="true"
+            :need-tip="true"
+            :tip-content="'Please set the project keywords.'"
+            @change="saveKeywords"></EditChipList>
+        </div>
       </div>
     </div>
 
@@ -169,6 +173,7 @@ import { useToast } from "vue-toastification";
 import Alert from "../components/Alert.vue";
 import Markdown from "../components/Markdown.vue";
 import EditTextField from "../components/config/EditTextField.vue";
+import EditChipList from "../components/config/EditChipList.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -202,7 +207,7 @@ const projectSummary = `Do you want to publish the project ${config.value?.name 
 const configFieldRulesObject = {
   requiredFieldRules: [
     (value: string) => {
-      if (value && value.trim()?.length > 0) return true;
+      if (value && value.trim()) return true;
       return "This field is required.";
     },
   ],
@@ -242,6 +247,17 @@ const configFieldRulesObject = {
       return true;
     },
   ],
+
+  keywordsFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) return true;
+      return "The keyword can't be empty.";
+    },
+    (value: string) => {
+      if (/^[A-Za-z](?:[_\\.-]?[A-Za-z0-9]+)*$/.test(value.trim())) return true;
+      else return "The keyword format is not correct.";
+    },
+  ],
 };
 
 function showAlert() {
@@ -277,6 +293,10 @@ async function saveAuthorConfig(type: string, value: string | undefined) {
       ? Object.assign({}, config.value.author, { [type]: value })
       : { [type]: value };
   return saveConfig({ author: newAuthorConfig });
+}
+
+async function saveKeywords(value: string[] | undefined) {
+  return saveConfig({ keywords: value });
 }
 
 async function saveProjectConfig(type: string, value: string | undefined) {
