@@ -533,6 +533,15 @@ export const store = createStore<State>({
       }
     },
 
+    async uploadProjectIcon({ commit, state }, formData: FormData) {
+      try {
+        const config = await webinizer.uploadProjectIcon(state.root, formData);
+        commit("setProjectConfig", config);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
     async getAllAvailableIcons({ commit, state }) {
       try {
         const icons = await webinizer.getAllAvailableIcons(state.root);

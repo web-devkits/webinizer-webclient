@@ -218,38 +218,23 @@
 
             <v-window-item :value="AddProjectType.registry">
               <v-form ref="formRegistry" class="mt-2" @submit.prevent>
-                <div class="d-flex">
-                  <div class="pr-4 mt-2 align-self-baseline flex-grow-0 flex-shrink-0">
-                    <Icons
-                      :icons="icons"
-                      :selected-icon="selectedIcon"
-                      :upload-icon="uploadIcon"
-                      @upload="iconChangeHandler"
-                      @change="selectIconHandler"
-                      @clear="uploadIcon = []"
-                      @get-icons="getAvailableIcons"></Icons>
-                  </div>
-
-                  <div class="flex-grow-1 flex-shrink-0">
-                    <v-combobox
-                      v-model="projName"
-                      label="Package name"
-                      variant="outlined"
-                      clearable
-                      open-on-clear
-                      :rules="formFieldRulesObject.fieldNameRules"
-                      :items="registryPkgSearchList"
-                      @input="queryRegistryWithDebounce($event.srcElement.value)"
-                      @keyup.enter="confirmPackageHandler($event.srcElement.value)"
-                      @blur="
-                        {
-                          confirmPackageHandler($event.srcElement.value),
-                            (searchResultsFromRegistry = []);
-                        }
-                      "
-                      @update:menu="confirmPackageHandler(projName as string)"></v-combobox>
-                  </div>
-                </div>
+                <v-combobox
+                  v-model="projName"
+                  label="Package name"
+                  variant="outlined"
+                  clearable
+                  open-on-clear
+                  :rules="formFieldRulesObject.fieldNameRules"
+                  :items="registryPkgSearchList"
+                  @input="queryRegistryWithDebounce($event.srcElement.value)"
+                  @keyup.enter="confirmPackageHandler($event.srcElement.value)"
+                  @blur="
+                    {
+                      confirmPackageHandler($event.srcElement.value),
+                        (searchResultsFromRegistry = []);
+                    }
+                  "
+                  @update:menu="confirmPackageHandler(projName as string)"></v-combobox>
                 <div class="mt-8">
                   <EditTextField
                     no-need-save-instantly
@@ -911,10 +896,8 @@ async function uploadProjectIcon() {
   let blobFile = new File([blob], `${name}`);
   let formData = new FormData();
   formData.append("file", blobFile);
-  const uploadedIconName = await fireUploadIconRequest(root.value, formData);
+  await store.dispatch("uploadProjectIcon", formData);
 
-  // trigger to select this new uploaded icon
-  selectedIcon.value = { name: uploadedIconName, isUploaded: true };
   uploadIcon.value = [];
   // refresh icons list
   await getAvailableIcons();
@@ -937,10 +920,6 @@ async function cloneProject() {
 
 async function fetchProject() {
   await store.dispatch("fetchProjectFromRegistry", {
-    img: selectedIcon.value || {
-      name: bindIconAccordingToProjName(projName.value as string),
-      isUploaded: false,
-    },
     name: projName.value,
     version: projVersion.value,
   });
@@ -1009,12 +988,28 @@ watch(
           showDependencySelect.value = false;
           showDependentArea.value = true;
         }
-        await store.dispatch("fetchProjectConfig");
+
         /* upload the project icon after adding */
         if (uploadIcon.value.length > 0) {
           /* trigger to upload icon */
           await uploadProjectIcon();
         }
+
+        /* update the selected icon after uploading*/
+        await store.dispatch("fetchProjectConfig");
+
+        /* if the config.img object is undefined, bind with default
+         * icon based on work-initial
+         */
+        if (config.value?.img === undefined) {
+          await saveConfig({
+            img: {
+              name: bindIconAccordingToProjName(projName.value as string),
+              isUploaded: false,
+            },
+          });
+        }
+
         toast.success(`Project ${projName.value as string} has been successfully added!`);
       }
     }
@@ -1040,6 +1035,17 @@ watch(
     if (_n) {
       if (config.value?.dependencies && Object.keys(config.value.dependencies).length)
         showDependentArea.value = true;
+    }
+  }
+);
+
+watch(
+  () => config.value?.img,
+  (_n) => {
+    if (_n) {
+      if (config.value?.img && Object.keys(config.value?.img).length > 0) {
+        selectedIcon.value = config.value?.img;
+      }
     }
   }
 );
