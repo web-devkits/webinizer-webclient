@@ -9,7 +9,7 @@
     <v-card-title class="d-flex">
       <div>{{ propsVal.title }}</div>
       <template v-if="propsVal.needTip && propsVal.tipContent"
-        ><TipPopover type="L" :tip-content="propsVal.tipContent"></TipPopover
+        ><TipPopover type="M" :tip-content="propsVal.tipContent"></TipPopover
       ></template>
     </v-card-title>
 
@@ -40,7 +40,7 @@
           color="blue"
           icon="mdi-plus"
           class="add-keywords"
-          variant="plain"
+          variant="text"
           @click="isAdding = true"></v-btn>
       </span>
     </v-card-text>
@@ -112,7 +112,7 @@ watch(
 );
 </script>
 
-<style lang="scss" scopes>
+<style lang="scss" scoped>
 .v-btn__content .v-icon .display-keywords {
   opacity: 0.8 !important;
 }
