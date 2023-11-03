@@ -494,7 +494,6 @@ import {
   PackageSearchResult,
   search as searchRegistry,
   ConfigParameterTypes,
-  uploadProjectIcon as fireUploadIconRequest,
   ProjectIcon,
 } from "../webinizer";
 import { useToast } from "vue-toastification";
