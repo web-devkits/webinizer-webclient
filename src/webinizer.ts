@@ -754,15 +754,14 @@ export async function uploadProjectFile(formData: FormData): Promise<ProjectAddR
   return response.data as ProjectAddResult;
 }
 
-export async function uploadProjectIcon(root: string, formData: FormData): Promise<string> {
+export async function uploadProjectIcon(root: string, formData: FormData): Promise<ProjectConfig> {
   log.info(">>> uploadProjectIcon", formData);
   const response = await axios.post(
     `${API_SERVER}/api/projects/${encodeURIComponent(root)}/icons`,
     formData
   );
   log.info("<<< uploadProjectIcon", response.data);
-  response.data.path = decodeURIComponent(response.data.path);
-  return response.data.iconName as string;
+  return response.data as ProjectConfig;
 }
 
 export async function cloneProjectFromRemote(
