@@ -257,6 +257,10 @@ const configFieldRulesObject = {
       if (/^[A-Za-z](?:[_\\.-]?[A-Za-z0-9]+)*$/.test(value.trim())) return true;
       else return "The keyword format is not correct.";
     },
+    (value: string) => {
+      if (value && value.trim().length < 50) return true;
+      else return "The length of keyword should be less than 50.";
+    },
   ],
 };
 

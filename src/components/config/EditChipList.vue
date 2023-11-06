@@ -95,8 +95,8 @@ const initValArr = reactive({ valArr: cloneDeep(propsVal.value) || [] });
 
 function deleteItem() {
   const valueCopy = cloneDeep(initValArr.valArr) || [];
-  const result = valueCopy.filter((v) => !Object.values(chipGroupModelVal.value).includes(v));
-  emit("change", result);
+  const filteredArr = valueCopy.filter((v) => !Object.values(chipGroupModelVal.value).includes(v));
+  emit("change", filteredArr);
   chipGroupModelVal.value = [];
 }
 
