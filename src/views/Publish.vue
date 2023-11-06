@@ -260,7 +260,12 @@ const configFieldRulesObject = {
     },
     (value: string) => {
       if (value && value.trim().length < 50) return true;
-      else return "The length of keyword should be less than 50.";
+      else return "The keyword length should be less than 50.";
+    },
+    // if the new keyword has been added
+    (value: string) => {
+      if (!config.value?.keywords?.includes(value)) return true;
+      else return "The keyword has been added already.";
     },
   ],
 };
@@ -319,8 +324,11 @@ onMounted(async () => {
       await store.dispatch("fetchProjectConfig");
       // check if the default keywords are filled in config
       // updated if the default keywords are not set
-      if (!defaultKeywordsArray.value.every((item) => config.value?.keywords?.includes(item))) {
-        await saveKeywords(defaultKeywordsArray.value);
+      const keywordsNeedUpdate = defaultKeywordsArray.value.filter(
+        (item) => !config.value?.keywords?.includes(item)
+      );
+      if (keywordsNeedUpdate.length > 0) {
+        await saveKeywords(keywordsNeedUpdate);
       }
     }
     if (buildStatusType.value === "building" || buildStatusType.value === "building_with_recipes") {

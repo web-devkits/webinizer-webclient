@@ -22,10 +22,11 @@
           :key="idx"
           :value="val"
           :disabled="propsVal.defaultItems?.includes(val)"
-          color="blue"
-          class="mb-4"
+          :class="[
+            'mb-4',
+            propsVal.defaultItems?.includes(val) ? 'w-chip-default' : 'w-chip-customized',
+          ]"
           filter
-          :variant="propsVal.defaultItems?.includes(val) ? `tonal` : `outlined`"
           >{{ val }}</v-chip
         >
         <span v-if="propsVal.needAdd && !isAdding">
@@ -48,7 +49,7 @@
       </v-chip-group>
     </v-card-text>
 
-    <v-card-text v-if="isAdding">
+    <v-card-text v-if="propsVal.needAdd && isAdding">
       <EditTextField
         :is-adding="isAdding"
         :label="propsVal.itemLabel"
@@ -117,4 +118,13 @@ watch(
 );
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.w-chip-customized {
+  color: #2196f3 !important;
+}
+
+.w-chip-default {
+  opacity: 1;
+  color: #000;
+}
+</style>
