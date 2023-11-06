@@ -170,6 +170,7 @@ import { log } from "../helper";
 import * as webinizer from "../webinizer";
 import { getProjectName } from "../common/utility/utility";
 import { useToast } from "vue-toastification";
+import { cloneDeep } from "lodash";
 import Alert from "../components/Alert.vue";
 import Markdown from "../components/Markdown.vue";
 import EditTextField from "../components/config/EditTextField.vue";
@@ -328,7 +329,8 @@ onMounted(async () => {
         (item) => !config.value?.keywords?.includes(item)
       );
       if (keywordsNeedUpdate.length > 0) {
-        await saveKeywords(keywordsNeedUpdate);
+        const existedKeywords = cloneDeep(config.value?.keywords) || [];
+        await saveKeywords([...keywordsNeedUpdate, ...existedKeywords]);
       }
     }
     if (buildStatusType.value === "building" || buildStatusType.value === "building_with_recipes") {
