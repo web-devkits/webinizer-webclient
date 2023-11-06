@@ -118,7 +118,7 @@
           <EditChipList
             :title="'Keywords'"
             :value="config?.keywords"
-            :default-items="['webinizer']"
+            :default-items="defaultKeywordsArray"
             :item-label="'New keyword'"
             :rules="configFieldRulesObject.keywordsFieldRules"
             :need-add="true"
@@ -181,6 +181,7 @@ const toast = useToast();
 
 const panel = ref([0]);
 const alert = ref(false);
+const defaultKeywordsArray = ref(["webinizer"]);
 
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
@@ -316,6 +317,11 @@ onMounted(async () => {
     }
     if (root.value) {
       await store.dispatch("fetchProjectConfig");
+      // check if the default keywords are filled in config
+      // updated if the default keywords are not set
+      if (!defaultKeywordsArray.value.every((item) => config.value?.keywords?.includes(item))) {
+        await saveKeywords(defaultKeywordsArray.value);
+      }
     }
     if (buildStatusType.value === "building" || buildStatusType.value === "building_with_recipes") {
       disabledPublishBtn.value = true;
