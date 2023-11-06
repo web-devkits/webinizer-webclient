@@ -55,6 +55,7 @@
 
   <v-text-field
     v-else
+    ref="textFiled4Adding"
     v-model="editNewItem"
     clearable
     color="blue"
@@ -133,6 +134,7 @@ enum EditStatus {
 const alert = ref(false);
 const editNewItem = ref("");
 const field = ref<any>();
+const textFiled4Adding = ref<any>();
 const editValue = ref(props.value);
 const editStatus = ref(EditStatus.DEFAULT);
 
@@ -147,6 +149,11 @@ function deleteItem() {
 }
 
 async function addItem() {
+  if (props.rules && props.rules.length > 0) {
+    const valid = await textFiled4Adding.value?.validate();
+    if (valid && valid.length > 0) return;
+  }
+
   emit("change", editNewItem.value.trim());
   await nextTick(() => {
     emit("cancelAdd");

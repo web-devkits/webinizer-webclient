@@ -6,48 +6,51 @@
 
 <template>
   <v-card variant="elevated" class="text-left" flat>
-    <v-card-title class="d-flex">
-      <div>{{ propsVal.title }}</div>
-      <template v-if="propsVal.needTip && propsVal.tipContent"
-        ><TipPopover type="M" :tip-content="propsVal.tipContent"></TipPopover
-      ></template>
-    </v-card-title>
+    <v-card-item class="mb-10">
+      <v-card-title class="d-flex">
+        <div>{{ propsVal.title }}</div>
+        <template v-if="propsVal.needTip && propsVal.tipContent"
+          ><TipPopover type="M" :tip-content="propsVal.tipContent"></TipPopover
+        ></template>
+      </v-card-title>
+    </v-card-item>
 
-    <v-card-text>
-      <template v-for="(val, idx) in initValArr.valArr || []" :key="idx">
-        <v-hover v-slot="{ isHovering, props }">
-          <v-chip
-            v-bind="props"
-            :value="val"
-            class="ma-2"
-            :color="propsVal.defaultItems?.includes(val) ? 'default' : 'blue'"
-            ><template v-if="isHovering && !propsVal.defaultItems?.includes(val)" #append>
-              <v-icon
-                class="ml-2 display-keywords"
-                color="blue"
-                icon="mdi-close-circle"
-                size="small"
-                variant="plain"
-                @click="deleteItem(idx)"></v-icon>
-            </template>
-            {{ val }}</v-chip
-          ></v-hover
+    <v-card-text v-if="initValArr.valArr.length > 0" class="mt-n8">
+      <v-chip-group v-model="chipGroupModelVal" column multiple class="ma-2">
+        <v-chip
+          v-for="(val, idx) in initValArr.valArr || []"
+          :key="idx"
+          :value="val"
+          :disabled="propsVal.defaultItems?.includes(val)"
+          :class="[
+            'mb-4',
+            propsVal.defaultItems?.includes(val) ? 'w-chip-default' : 'w-chip-customized',
+          ]"
+          filter
+          >{{ val }}</v-chip
         >
-      </template>
-      <span v-if="propsVal.needAdd" class="ma-2">
-        <v-btn
-          v-if="!isAdding"
-          color="blue"
-          icon="mdi-plus"
-          class="add-keywords"
-          variant="text"
-          @click="isAdding = true"></v-btn>
-      </span>
+        <span v-if="propsVal.needAdd && !isAdding">
+          <v-icon
+            size="large"
+            class="ma-2"
+            color="blue"
+            icon="mdi-plus"
+            @click="isAdding = true"></v-icon>
+        </span>
+
+        <span v-if="chipGroupModelVal.length > 0">
+          <v-icon
+            size="large"
+            class="ma-2"
+            color="red"
+            icon="mdi-close"
+            @click="deleteItem"></v-icon>
+        </span>
+      </v-chip-group>
     </v-card-text>
 
-    <v-card-text v-if="propsVal.needAdd && isAdding" class="ma-2">
+    <v-card-text v-if="propsVal.needAdd && isAdding">
       <EditTextField
-        need-delete
         :is-adding="isAdding"
         :label="propsVal.itemLabel"
         :rules="propsVal.rules"
@@ -67,6 +70,8 @@ import { ref, reactive, watch } from "vue";
 import { cloneDeep } from "lodash";
 import TipPopover from "../TipPopover.vue";
 import EditTextField from "./EditTextField.vue";
+
+const chipGroupModelVal = ref<string[]>([]);
 
 const propsVal = defineProps<{
   title?: string;
@@ -89,10 +94,11 @@ const emit = defineEmits<{
 const isAdding = ref(false);
 const initValArr = reactive({ valArr: cloneDeep(propsVal.value) || [] });
 
-function deleteItem(idx: number) {
+function deleteItem() {
   const valueCopy = cloneDeep(initValArr.valArr) || [];
-  valueCopy.splice(idx, 1);
-  emit("change", valueCopy);
+  const filteredArr = valueCopy.filter((v) => !Object.values(chipGroupModelVal.value).includes(v));
+  emit("change", filteredArr);
+  chipGroupModelVal.value = [];
 }
 
 function addItem(val: string) {
@@ -113,11 +119,12 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-.v-btn__content .v-icon .display-keywords {
-  opacity: 0.8 !important;
+.w-chip-customized {
+  color: #2196f3 !important;
 }
 
-.v-btn__content .v-icon .add-keywords {
-  opacity: 0.2 !important;
+.w-chip-default {
+  opacity: 1;
+  color: #000;
 }
 </style>

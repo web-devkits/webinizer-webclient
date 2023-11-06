@@ -118,7 +118,7 @@
           <EditChipList
             :title="'Keywords'"
             :value="config?.keywords"
-            :default-items="['webinizer']"
+            :default-items="defaultKeywordsArray"
             :item-label="'New keyword'"
             :rules="configFieldRulesObject.keywordsFieldRules"
             :need-add="true"
@@ -170,6 +170,7 @@ import { log } from "../helper";
 import * as webinizer from "../webinizer";
 import { getProjectName } from "../common/utility/utility";
 import { useToast } from "vue-toastification";
+import { cloneDeep } from "lodash";
 import Alert from "../components/Alert.vue";
 import Markdown from "../components/Markdown.vue";
 import EditTextField from "../components/config/EditTextField.vue";
@@ -181,6 +182,7 @@ const toast = useToast();
 
 const panel = ref([0]);
 const alert = ref(false);
+const defaultKeywordsArray = ref(["webinizer"]);
 
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
@@ -257,6 +259,15 @@ const configFieldRulesObject = {
       if (/^[A-Za-z](?:[_\\.-]?[A-Za-z0-9]+)*$/.test(value.trim())) return true;
       else return "The keyword format is not correct.";
     },
+    (value: string) => {
+      if (value && value.trim().length < 50) return true;
+      else return "The keyword length should be less than 50.";
+    },
+    // if the new keyword has been added
+    (value: string) => {
+      if (!config.value?.keywords?.includes(value)) return true;
+      else return "The keyword has been added already.";
+    },
   ],
 };
 
@@ -312,6 +323,15 @@ onMounted(async () => {
     }
     if (root.value) {
       await store.dispatch("fetchProjectConfig");
+      // check if the default keywords are filled in config
+      // updated if the default keywords are not set
+      const keywordsNeedUpdate = defaultKeywordsArray.value.filter(
+        (item) => !config.value?.keywords?.includes(item)
+      );
+      if (keywordsNeedUpdate.length > 0) {
+        const existedKeywords = cloneDeep(config.value?.keywords) || [];
+        await saveKeywords([...keywordsNeedUpdate, ...existedKeywords]);
+      }
     }
     if (buildStatusType.value === "building" || buildStatusType.value === "building_with_recipes") {
       disabledPublishBtn.value = true;
