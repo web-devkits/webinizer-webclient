@@ -44,8 +44,14 @@
           </div>
           <div class="add_title"><span>Add Project</span></div>
         </div>
+        <div div class="delete_wrapper" @click="toRecycleBin">
+          <div class="delete_icon">
+            <span><v-icon icon="mdi-delete"></v-icon></span>
+          </div>
+          <div class="delete_title"><span>Recycle Bin</span></div>
+        </div>
       </div>
-      <div v-if="displayMode === 'card'" class="rs rg">
+      <div v-if="displayMode === 'card' && !showRecyclePanel" class="rs rg">
         <div v-for="(lib, index) in reactiveLibsList" :key="index" class="profile">
           <div
             v-if="!lib.id && lib.id !== 0"
@@ -84,7 +90,7 @@
           </div>
         </div>
       </div>
-      <div v-else class="mx-auto">
+      <div v-else-if="displayMode === 'list' && !showRecyclePanel" class="mx-auto">
         <div v-for="(lib, index) in reactiveLibsList" :key="index">
           <div class="project_list">
             <div v-if="!lib.id && lib.id !== 0" class="project_delete_icon">
@@ -130,6 +136,52 @@
           </div>
         </div>
       </div>
+      <div v-if="showRecyclePanel" class="mx-auto">
+        <div v-for="(lib, index) in deletedProjectsList" :key="index">
+          <div class="project_list">
+            <div class="project_delete_icon">
+              <v-icon
+                title="Delete this project from the disk"
+                class="hard-delete-icon"
+                icon="mdi-close-thick"
+                @click="showAlert(index)"></v-icon>
+            </div>
+            <div class="project_img">
+              <v-avatar size="36px" rounded="0">
+                <v-img
+                  v-if="lib.img && Object.keys(lib.img).length > 0"
+                  :src="
+                    lib.img?.isUploaded
+                      ? prefix4ProjIcon +
+                        `${encodeURIComponent(lib.path as string)}/icons/` +
+                        lib.img?.name
+                      : prefix4DefaultIcon + lib.img?.name
+                  "></v-img>
+              </v-avatar>
+            </div>
+            <div class="project_name">
+              <h3 :title="lib.name">
+                {{ lib.name }}
+              </h3>
+            </div>
+            <div class="project_version">
+              <span class="version_badge">
+                <span class="px-1">V{{ lib.version }}</span>
+              </span>
+            </div>
+            <div class="project_desc">
+              <span class="text-medium-emphasis" :title="lib.desc">{{ lib.desc }}</span>
+            </div>
+            <div class="project_category">
+              <span v-if="lib.category" class="text-medium-emphasis pr-1">{{ lib.category }}</span>
+              <span v-else> - </span>
+            </div>
+            <div class="project_select_btn">
+              <button class="select-btn" @click="restoreProject(index)">restore</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="pagination" class="mw1280 mx-auto">
@@ -166,23 +218,40 @@ const router = useRouter();
 let deleteIdx = -1;
 const alert = ref(false);
 const pageNum = ref(1);
+const showRecyclePanel = ref(false);
 
-/* limit 6 for card mode and 10 for list mode */
-const eachPageProjNum = computed(() => (displayMode.value === "card" ? 6 : 10));
+// limit 15 for deleted projects panel
+// limit 6 for card mode and 10 for list mode
+const eachPageProjNum = computed(() =>
+  showRecyclePanel.value ? 15 : displayMode.value === "card" ? 6 : 10
+);
+
 const reactiveLibsList = computed(() =>
   store.state.projectsPool.slice(
     (pageNum.value - 1) * eachPageProjNum.value,
     pageNum.value * eachPageProjNum.value
   )
 );
-const displayMode = computed(() => store.state.displayMode);
-const totalPageNum = computed(() =>
-  store.state.projectsPool.length === 0
-    ? "0"
-    : (store.state.projectsPool.length / eachPageProjNum.value) % 1 === 0
-    ? store.state.projectsPool.length / eachPageProjNum.value
-    : Math.trunc(store.state.projectsPool.length / eachPageProjNum.value) + 1
+
+const deletedProjectsList = computed(() =>
+  store.state.deletedProjectsPool.slice(
+    (pageNum.value - 1) * eachPageProjNum.value,
+    pageNum.value * eachPageProjNum.value
+  )
 );
+
+const displayMode = computed(() => store.state.displayMode);
+const totalPageNum = computed(() => {
+  const projects = showRecyclePanel.value
+    ? store.state.deletedProjectsPool
+    : store.state.projectsPool;
+
+  return projects.length === 0
+    ? "0"
+    : (projects.length / eachPageProjNum.value) % 1 === 0
+    ? projects.length / eachPageProjNum.value
+    : Math.trunc(projects.length / eachPageProjNum.value) + 1;
+});
 
 const prefix4DefaultIcon = `${API_SERVER}/assets/icons/default/`;
 const prefix4ProjIcon = `${API_SERVER}/api/projects/`;
@@ -193,8 +262,15 @@ function showAlert(idx: number) {
 }
 
 function updateDisplayMode(mode: DisplayMode) {
+  showRecyclePanel.value = false;
   pageNum.value = 1;
   store.commit("setDisplayMode", mode);
+}
+
+function toRecycleBin() {
+  showRecyclePanel.value = true;
+  pageNum.value = 1;
+  store.commit("setDisplayMode", "");
 }
 
 async function saveConfig(configToMerge?: { [k: string]: unknown }) {
@@ -224,13 +300,42 @@ async function selectProject(index: number) {
   } catch (error) {
     log.errMsgNCuz(error);
   }
-  // remove the previous project state before selecting new one
+}
+
+async function restoreProject(index: number) {
+  try {
+    store.commit("setRoot", deletedProjectsList.value[index].path);
+    await saveConfig({
+      deleted: false,
+    });
+    // refresh the projects in the state
+    await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+    store.commit("setRoot", undefined);
+  } catch (error) {
+    store.commit("setRoot", undefined);
+    log.errMsgNCuz(error);
+  }
 }
 
 async function deleteProject() {
   try {
     if (deleteIdx === -1) return;
-    await store.dispatch("deleteProject", reactiveLibsList.value[deleteIdx].path);
+    // if delete from the recycle bin, it means remove from the disk
+    if (showRecyclePanel.value) {
+      await store.dispatch("deleteProject", deletedProjectsList.value[deleteIdx].path);
+    } else {
+      // update the deleted flag for soft delete
+      store.commit("setRoot", reactiveLibsList.value[deleteIdx].path);
+      await saveConfig({
+        deleted: true,
+      });
+    }
+
+    // refresh the projects in the state
+    await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+    store.commit("setRoot", undefined);
   } catch (error) {
     log.errMsgNCuz(error);
   } finally {
@@ -247,6 +352,8 @@ async function toAddProject() {
 onMounted(async () => {
   try {
     await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+    store.commit("setDisplayMode", "card");
   } catch (error) {
     log.errMsgNCuz(error);
   }
@@ -449,6 +556,7 @@ button.select-btn.small {
   grid-row-gap: 10px;
 }
 
+.delete_wrapper,
 .add_wrapper {
   display: flex;
   flex-direction: column;
@@ -467,6 +575,7 @@ button.select-btn.small {
   padding: 5px 5px;
 }
 
+.delete_wrapper:hover,
 .add_wrapper:hover {
   cursor: pointer;
   border: 1px solid var(--black-1);
@@ -518,6 +627,7 @@ button.select-btn.small {
   margin: 0.8rem 0;
 }
 
+.delete_icon,
 .add_icon {
   display: flex;
   justify-content: center;
@@ -530,8 +640,20 @@ button.select-btn.small {
   margin: 0;
 }
 
+.delete_icon {
+  border: 2px solid #aaa;
+}
+
+.delete_wrapper .delete_icon span {
+  color: #aaa;
+}
 .add_wrapper .add_icon span {
   color: var(--p-8);
+}
+
+.delete_wrapper:hover .delete_icon {
+  background-color: #aaa;
+  box-shadow: 1px 3px 5px 0px rgb(35 100 210 / 10%);
 }
 
 .add_wrapper:hover .add_icon {
@@ -539,10 +661,14 @@ button.select-btn.small {
   box-shadow: 1px 3px 5px 0px rgb(35 100 210 / 10%);
 }
 
+.delete_wrapper:hover .delete_icon span,
 .add_wrapper:hover .add_icon span {
   color: white;
 }
 
+.delete_wrapper:hover .delete_title {
+  color: #aaa;
+}
 .add_wrapper:hover .add_title {
   color: var(--p-8);
 }
@@ -627,6 +753,16 @@ button.select-btn.small {
   padding-right: 10px;
 }
 
+.hard-delete-icon {
+  color: red;
+  opacity: 0.3;
+}
+
+.hard-delete-icon:hover {
+  color: red;
+  opacity: 0.9;
+}
+
 @media only screen and (min-width: 1280px) {
   .rg {
     grid-template-columns: repeat(3, 1fr);
@@ -675,7 +811,7 @@ button.select-btn.small {
     margin: auto;
     overflow: hidden;
   }
-
+  .rs.rg .delete_wrapper,
   .rs.rg .add_wrapper {
     margin: auto;
     overflow: hidden;
@@ -705,6 +841,14 @@ button.select-btn.small {
     grid-column: 1;
   }
 
+  .delete_wrapper {
+    position: absolute;
+    left: 80%;
+    transform: translate(-50%, -100%);
+    width: 96px;
+    height: 96px;
+  }
+
   .add_wrapper {
     position: absolute;
     left: 50%;
@@ -713,6 +857,7 @@ button.select-btn.small {
     height: 96px;
   }
 
+  .delete_title,
   .add_title {
     display: none;
   }

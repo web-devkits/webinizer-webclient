@@ -17,9 +17,6 @@ import { useToast } from "vue-toastification";
 
 const toast = useToast();
 
-// FIXME: no hard code here
-// We assume the backend is in the same host, i.e. in the same docker instance
-// And we use http protocol with port 16666
 export const API_SERVER = `http://${location.hostname}:16666`;
 
 export const enum ActionsTypes {
@@ -691,6 +688,13 @@ export async function getProjects(): Promise<ProjectProfile[]> {
   return response.data.profiles as ProjectProfile[];
 }
 
+export async function getDeletedProjects(): Promise<ProjectProfile[]> {
+  log.info(">>> get deleted projects");
+  const response = await axios.get(`${API_SERVER}/api/projects/profile/deleted`);
+  log.info("<<<  get deleted projects", response.data);
+  return response.data.profiles as ProjectProfile[];
+}
+
 export async function saveAsNewFile(
   root: string,
   name: string,
@@ -789,9 +793,9 @@ export async function addProjectFromRegistry(
 }
 
 export async function deleteProject(root: string): Promise<ProjectProfile[]> {
-  log.info(">>> deleteProject", root);
+  log.info(">>> delete project from disk", root);
   const response = await axios.delete(`${API_SERVER}/api/projects/${encodeURIComponent(root)}`);
-  log.info("<<< deleteProject", response);
+  log.info("<<< delete project from disk", response);
   return response.data.profiles as ProjectProfile[];
 }
 

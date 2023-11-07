@@ -424,10 +424,6 @@ onMounted(async () => {
     case EditorType.LOG:
       if (monaco.languages.getEncodedLanguageId("Log") == 0) {
         monaco.languages.register({ id: "Log" });
-
-        // Register a tokens provider for the language
-        // FIXME - "log-builder" regular expression should be updated
-        //         due to the dynamic builders getting from server
         monaco.languages.setMonarchTokensProvider("Log", {
           tokenizer: {
             root: [
