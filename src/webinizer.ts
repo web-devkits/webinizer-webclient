@@ -296,7 +296,7 @@ export interface ProjectConfig extends IJsonObject {
   resolutions?: PkgResolution[];
   requiredBy?: { [k: string]: string };
   author?: ProjectPerson;
-  keywords?: string;
+  keywords?: string[];
   repository?: ProjectRepository;
   homepage?: string;
   bugs?: string;

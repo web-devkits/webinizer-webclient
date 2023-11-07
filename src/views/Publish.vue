@@ -69,15 +69,6 @@
       <div class="bl">
         <v-card variant="elevated" class="text-left" flat>
           <v-card-item class="mb-10"><v-card-title> Package info </v-card-title></v-card-item>
-          <v-card-text>
-            <EditTextField
-              need-tip
-              label="Keywords"
-              type-name="keywords"
-              :tip-content="'Please enter the keywords for the project and separate each keyword with a comma.'"
-              :value="config?.keywords"
-              @change-with-type="saveProjectConfig"></EditTextField>
-          </v-card-text>
 
           <v-card-text>
             <EditTextField
@@ -122,6 +113,19 @@
               @change-with-type="saveProjectConfig"></EditTextField>
           </v-card-text>
         </v-card>
+
+        <div class="mt-n6">
+          <EditChipList
+            :title="'Keywords'"
+            :value="config?.keywords"
+            :default-items="defaultKeywordsArray"
+            :item-label="'New keyword'"
+            :rules="configFieldRulesObject.keywordsFieldRules"
+            :need-add="true"
+            :need-tip="true"
+            :tip-content="'Please set the project keywords.'"
+            @change="saveKeywords"></EditChipList>
+        </div>
       </div>
     </div>
 
@@ -166,9 +170,11 @@ import { log } from "../helper";
 import * as webinizer from "../webinizer";
 import { getProjectName } from "../common/utility/utility";
 import { useToast } from "vue-toastification";
+import { cloneDeep } from "lodash";
 import Alert from "../components/Alert.vue";
 import Markdown from "../components/Markdown.vue";
 import EditTextField from "../components/config/EditTextField.vue";
+import EditChipList from "../components/config/EditChipList.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -176,6 +182,7 @@ const toast = useToast();
 
 const panel = ref([0]);
 const alert = ref(false);
+const defaultKeywordsArray = ref(["webinizer"]);
 
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
@@ -202,7 +209,7 @@ const projectSummary = `Do you want to publish the project ${config.value?.name 
 const configFieldRulesObject = {
   requiredFieldRules: [
     (value: string) => {
-      if (value && value.trim()?.length > 0) return true;
+      if (value && value.trim()) return true;
       return "This field is required.";
     },
   ],
@@ -242,6 +249,26 @@ const configFieldRulesObject = {
       return true;
     },
   ],
+
+  keywordsFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) return true;
+      return "The keyword can't be empty.";
+    },
+    (value: string) => {
+      if (/^[A-Za-z](?:[_\\.-]?[A-Za-z0-9]+)*$/.test(value.trim())) return true;
+      else return "The keyword format is not correct.";
+    },
+    (value: string) => {
+      if (value && value.trim().length < 50) return true;
+      else return "The keyword length should be less than 50.";
+    },
+    // if the new keyword has been added
+    (value: string) => {
+      if (!config.value?.keywords?.includes(value)) return true;
+      else return "The keyword has been added already.";
+    },
+  ],
 };
 
 function showAlert() {
@@ -279,6 +306,10 @@ async function saveAuthorConfig(type: string, value: string | undefined) {
   return saveConfig({ author: newAuthorConfig });
 }
 
+async function saveKeywords(value: string[] | undefined) {
+  return saveConfig({ keywords: value });
+}
+
 async function saveProjectConfig(type: string, value: string | undefined) {
   if (type === "repository") return saveConfig({ repository: { type: "git", url: value } });
   return saveConfig({ [type]: value });
@@ -292,6 +323,15 @@ onMounted(async () => {
     }
     if (root.value) {
       await store.dispatch("fetchProjectConfig");
+      // check if the default keywords are filled in config
+      // updated if the default keywords are not set
+      const keywordsNeedUpdate = defaultKeywordsArray.value.filter(
+        (item) => !config.value?.keywords?.includes(item)
+      );
+      if (keywordsNeedUpdate.length > 0) {
+        const existedKeywords = cloneDeep(config.value?.keywords) || [];
+        await saveKeywords([...keywordsNeedUpdate, ...existedKeywords]);
+      }
     }
     if (buildStatusType.value === "building" || buildStatusType.value === "building_with_recipes") {
       disabledPublishBtn.value = true;
