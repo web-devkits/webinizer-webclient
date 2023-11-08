@@ -44,7 +44,9 @@
           </div>
           <div class="add_title"><span>Add Project</span></div>
         </div>
-        <div div class="delete_wrapper" @click="toRecycleBin">
+        <div
+          :class="['delete_wrapper', showRecyclePanel ? 'delete_wrapper_active' : '']"
+          @click="toRecycleBin">
           <div class="delete_icon">
             <span><v-icon icon="mdi-delete"></v-icon></span>
           </div>
@@ -136,15 +138,26 @@
           </div>
         </div>
       </div>
-      <div v-if="showRecyclePanel" class="mx-auto">
+      <div v-if="showRecyclePanel" id="recycleBinPanel">
+        <v-banner class="mb-4" lines="one">
+          <template #text><span class="text-h6">Recycle bin</span></template>
+          <template #actions>
+            <v-btn
+              v-if="deletedProjectsList.length > 0"
+              size="small"
+              @click="showAlert(-1, true, true)"
+              >Delete All</v-btn
+            >
+          </template>
+        </v-banner>
         <div v-for="(lib, index) in deletedProjectsList" :key="index">
           <div class="project_list">
             <div class="project_delete_icon">
               <v-icon
                 title="Delete this project from the disk"
-                class="hard-delete-icon"
+                class="delete-icon"
                 icon="mdi-close-thick"
-                @click="showAlert(index)"></v-icon>
+                @click="showAlert(index, true)"></v-icon>
             </div>
             <div class="project_img">
               <v-avatar size="36px" rounded="0">
@@ -169,15 +182,19 @@
                 <span class="px-1">V{{ lib.version }}</span>
               </span>
             </div>
-            <div class="project_desc">
-              <span class="text-medium-emphasis" :title="lib.desc">{{ lib.desc }}</span>
+            <div class="project_path">
+              <span class="text-medium-emphasis" :title="lib.path">{{ lib.path }}</span>
             </div>
-            <div class="project_category">
-              <span v-if="lib.category" class="text-medium-emphasis pr-1">{{ lib.category }}</span>
-              <span v-else> - </span>
-            </div>
+
             <div class="project_select_btn">
-              <button class="select-btn" @click="restoreProject(index)">restore</button>
+              <button class="restore-btn" @click="restoreProject(index)">restore</button>
+              <v-icon
+                title="restore this project"
+                class="restore-icon"
+                size="x-large"
+                icon="mdi-undo-variant"
+                color="blue"
+                @click="restoreProject(index)"></v-icon>
             </div>
           </div>
         </div>
@@ -198,8 +215,8 @@
   <Transition name="slide-fade">
     <Alert
       v-if="alert"
-      content="Are you sure to delete?"
-      @confirm="deleteProject()"
+      :content="alertContent"
+      @confirm="deleteIdx === -1 ? deleteAllProjects() : deleteProject()"
       @cancel="alert = false"></Alert
   ></Transition>
 </template>
@@ -215,10 +232,11 @@ import { API_SERVER, DisplayMode } from "../webinizer";
 const store = useStore();
 const router = useRouter();
 
-let deleteIdx = -1;
+const deleteIdx = ref(-1);
 const alert = ref(false);
 const pageNum = ref(1);
 const showRecyclePanel = ref(false);
+const alertContent = ref("");
 
 // limit 15 for deleted projects panel
 // limit 6 for card mode and 10 for list mode
@@ -256,8 +274,13 @@ const totalPageNum = computed(() => {
 const prefix4DefaultIcon = `${API_SERVER}/assets/icons/default/`;
 const prefix4ProjIcon = `${API_SERVER}/api/projects/`;
 
-function showAlert(idx: number) {
-  deleteIdx = idx;
+function showAlert(idx: number, hardDelete?: boolean, deleteAll?: boolean) {
+  alertContent.value = deleteAll
+    ? "Are you sure to delete all these projects from the disk?"
+    : hardDelete
+    ? "Are you sure to delete this project from the disk?"
+    : "Are you sure to delete?";
+  deleteIdx.value = idx;
   alert.value = true;
 }
 
@@ -320,13 +343,13 @@ async function restoreProject(index: number) {
 
 async function deleteProject() {
   try {
-    if (deleteIdx === -1) return;
+    if (deleteIdx.value === -1) return;
     // if delete from the recycle bin, it means remove from the disk
     if (showRecyclePanel.value) {
-      await store.dispatch("deleteProject", deletedProjectsList.value[deleteIdx].path);
+      await store.dispatch("deleteProject", deletedProjectsList.value[deleteIdx.value].path);
     } else {
       // update the deleted flag for soft delete
-      store.commit("setRoot", reactiveLibsList.value[deleteIdx].path);
+      store.commit("setRoot", reactiveLibsList.value[deleteIdx.value].path);
       await saveConfig({
         deleted: true,
       });
@@ -340,7 +363,23 @@ async function deleteProject() {
     log.errMsgNCuz(error);
   } finally {
     alert.value = false;
-    deleteIdx = -1;
+    deleteIdx.value = -1;
+  }
+}
+
+async function deleteAllProjects() {
+  try {
+    if (deletedProjectsList.value.length === 0) return;
+    await store.dispatch(
+      "deleteProjects",
+      deletedProjectsList.value.map((item) => item.path)
+    );
+    await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+  } catch (error) {
+    log.errMsgNCuz(error);
+  } finally {
+    alert.value = false;
   }
 }
 
@@ -475,6 +514,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
+button.restore-btn,
 button.select-btn {
   outline: none;
   text-align: center;
@@ -495,7 +535,7 @@ button.select-btn {
     0px 1px 5px 0px rgb(0 0 0 / 12%);
 }
 
-button.select-btn:hover,
+button.restore-btn:hover,
 button.select-btn.hover {
   color: var(--white);
   letter-spacing: 1px;
@@ -507,7 +547,7 @@ button.select-btn.hover {
     0px 1px 10px 0px rgb(0 0 0 / 12%);
 }
 
-button.select-btn:active,
+button.restore-btn:active,
 button.select-btn.active {
   background: linear-gradient(135deg, var(--p-8) 40%, var(--secondary) 25%);
   outline: none;
@@ -518,15 +558,20 @@ button.select-btn.active {
   top: 0;
 }
 
+button.restore-btn.disabled,
 button.select-btn.disabled {
   opacity: 0.4;
   user-select: none;
   pointer-events: none;
 }
+
+button.restore-btn.medium,
 button.select-btn.medium {
   padding: 15px 18px;
   width: auto;
 }
+
+button.restore-btn.small,
 button.select-btn.small {
   padding: 10px 12px;
   width: auto;
@@ -559,10 +604,11 @@ button.select-btn.small {
 .delete_wrapper,
 .add_wrapper {
   display: flex;
+  position: relative;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border: 1px transparent solid;
+  border: 1px solid transparent;
   background: var(--backgroundColor);
   color: var(--foregroundColor);
   border-radius: 5px;
@@ -570,9 +616,26 @@ button.select-btn.small {
   width: 180px;
   height: 180px;
 }
-
+.delete_title,
 .add_title {
   padding: 5px 5px;
+}
+
+.delete_wrapper::before {
+  content: "";
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 2px;
+  height: 100%;
+  background: grey;
+  border-radius: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.delete_wrapper_active.delete_wrapper::before {
+  opacity: 1;
 }
 
 .delete_wrapper:hover,
@@ -732,6 +795,7 @@ button.select-btn.small {
   justify-self: start;
 }
 
+.project_path,
 .project_desc {
   grid-column: 5;
   max-width: 100%;
@@ -741,9 +805,15 @@ button.select-btn.small {
   justify-self: start;
 }
 
+#recycleBinPanel .project_path {
+  grid-column-start: 5;
+  grid-column-end: 7;
+}
+
 .project_name,
 .project_version,
 .project_desc,
+.project_path,
 .project_category {
   cursor: text;
 }
@@ -753,14 +823,8 @@ button.select-btn.small {
   padding-right: 10px;
 }
 
-.hard-delete-icon {
-  color: red;
-  opacity: 0.3;
-}
-
-.hard-delete-icon:hover {
-  color: red;
-  opacity: 0.9;
+.restore-icon {
+  display: none;
 }
 
 @media only screen and (min-width: 1280px) {
@@ -795,6 +859,15 @@ button.select-btn.small {
 
   .project_name {
     grid-column: 3;
+  }
+
+  #recycleBinPanel .project_version {
+    display: none;
+  }
+
+  #recycleBinPanel .project_path {
+    grid-column-start: 4;
+    grid-column-end: 6;
   }
 
   .project_desc {
@@ -875,8 +948,8 @@ button.select-btn.small {
   .project_list {
     width: 100%;
     grid-template-columns:
-      25px minmax(150px, 4fr) minmax(90px, 1fr)
-      3fr;
+      25px minmax(120px, 4fr) minmax(120px, 4fr)
+      1fr;
     gap: 10px;
   }
 
@@ -892,6 +965,17 @@ button.select-btn.small {
   .project_desc,
   .project_category {
     display: none;
+  }
+
+  #recycleBinPanel .project_path {
+    grid-column: 3;
+  }
+
+  .restore-btn {
+    display: none;
+  }
+  .restore-icon {
+    display: block;
   }
 }
 </style>
