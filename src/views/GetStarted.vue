@@ -331,10 +331,10 @@ async function restoreProject(index: number) {
     await saveConfig({
       deleted: false,
     });
+    store.commit("setRoot", undefined);
     // refresh the projects in the state
     await store.dispatch("fetchProjects");
     await store.dispatch("fetchDeletedProjects");
-    store.commit("setRoot", undefined);
   } catch (error) {
     store.commit("setRoot", undefined);
     log.errMsgNCuz(error);
@@ -354,12 +354,12 @@ async function deleteProject() {
         deleted: true,
       });
     }
-
+    store.commit("setRoot", undefined);
     // refresh the projects in the state
     await store.dispatch("fetchProjects");
     await store.dispatch("fetchDeletedProjects");
-    store.commit("setRoot", undefined);
   } catch (error) {
+    store.commit("setRoot", undefined);
     log.errMsgNCuz(error);
   } finally {
     alert.value = false;

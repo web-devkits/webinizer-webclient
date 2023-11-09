@@ -801,10 +801,13 @@ export async function deleteProject(root: string): Promise<ProjectProfile[]> {
 
 export async function deleteProjects(rootArray: string[]): Promise<ProjectProfile[]> {
   log.info(">>> delete project from disk", rootArray);
-  const params = { projectRootArray: rootArray.map((root) => encodeURIComponent(root)) || [] };
+  if (rootArray.length === 0) return [];
+
+  const params = { projectRootArray: rootArray.map((root) => encodeURIComponent(root)) };
   const response = await axios.delete(`${API_SERVER}/api/projects`, {
     params,
   });
+
   log.info("<<< delete project from disk", response);
   return response.data.profiles as ProjectProfile[];
 }
