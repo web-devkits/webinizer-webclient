@@ -509,9 +509,12 @@ export const store = createStore<State>({
       }
     },
 
-    async deleteProjects({ commit }, projectPathArray: string[]) {
+    async deleteProjects({ commit, state }, projectPathArray: string[]) {
       try {
-        const projects = await webinizer.deleteProjects(projectPathArray);
+        const projects = await webinizer.deleteProjects(
+          projectPathArray,
+          state.deletedProjectsPool
+        );
         commit("setDeletedProjectPool", projects);
       } catch (error) {
         throw error as Error;

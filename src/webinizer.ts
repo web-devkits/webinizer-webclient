@@ -799,16 +799,19 @@ export async function deleteProject(root: string): Promise<ProjectProfile[]> {
   return response.data.profiles as ProjectProfile[];
 }
 
-export async function deleteProjects(rootArray: string[]): Promise<ProjectProfile[]> {
-  log.info(">>> delete project from disk", rootArray);
-  if (rootArray.length === 0) return [];
+export async function deleteProjects(
+  rootArray: string[],
+  deletedProjectsPool: ProjectProfile[]
+): Promise<ProjectProfile[]> {
+  log.info(">>> delete a list projects from disk", rootArray);
+  if (rootArray.length === 0) return deletedProjectsPool;
 
   const params = { projectRootArray: rootArray.map((root) => encodeURIComponent(root)) };
   const response = await axios.delete(`${API_SERVER}/api/projects`, {
     params,
   });
 
-  log.info("<<< delete project from disk", response);
+  log.info("<<< delete a list projects from disk", response);
   return response.data.profiles as ProjectProfile[];
 }
 
