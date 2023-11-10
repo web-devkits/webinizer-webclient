@@ -21,6 +21,7 @@ export interface State {
   openFiles: string[];
   fileDirTree: webinizer.DTreeNode[];
   projectsPool: webinizer.ProjectProfile[];
+  deletedProjectsPool: webinizer.ProjectProfile[];
   buildingStatus: webinizer.statusType;
   buildResults?: webinizer.ProjectResult;
   templateLiterals: string[];
@@ -47,6 +48,7 @@ export const store = createStore<State>({
     openFiles: [],
     fileDirTree: [],
     projectsPool: [],
+    deletedProjectsPool: [],
     buildingStatus: "idle_default",
     buildResults: undefined,
     templateLiterals: [],
@@ -121,6 +123,10 @@ export const store = createStore<State>({
 
     setProjectPool(state: State, projects: webinizer.ProjectProfile[]) {
       state.projectsPool = projects;
+    },
+
+    setDeletedProjectPool(state: State, projects: webinizer.ProjectProfile[]) {
+      state.deletedProjectsPool = projects;
     },
 
     setTemplateLiterals(state: State, templates: string[]) {
@@ -398,6 +404,15 @@ export const store = createStore<State>({
       }
     },
 
+    async fetchDeletedProjects({ commit }) {
+      try {
+        const projects = await webinizer.getDeletedProjects();
+        commit("setDeletedProjectPool", projects);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
     async saveAsNewFile({ commit, state }, file: webinizer.EditFile) {
       try {
         const newFile = await webinizer.saveAsNewFile(state.root, file.name, file.content);
@@ -488,7 +503,19 @@ export const store = createStore<State>({
     async deleteProject({ commit }, projectPath: string) {
       try {
         const projects = await webinizer.deleteProject(projectPath);
-        commit("setProjectPool", projects);
+        commit("setDeletedProjectPool", projects);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
+    async deleteProjects({ commit, state }, projectPathArray: string[]) {
+      try {
+        const projects = await webinizer.deleteProjects(
+          projectPathArray,
+          state.deletedProjectsPool
+        );
+        commit("setDeletedProjectPool", projects);
       } catch (error) {
         throw error as Error;
       }

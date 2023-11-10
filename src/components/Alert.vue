@@ -6,6 +6,7 @@
 
 <template>
   <v-alert
+    v-click-outside="onClickOutside"
     prominent
     class="alert"
     :color="props.color || 'pink-darken-1'"
@@ -33,6 +34,10 @@ const props = defineProps<{
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const emit = defineEmits<{ (e: "confirm"): void; (e: "cancel"): void }>();
+
+const onClickOutside = () => {
+  emit(`cancel`);
+};
 </script>
 
 <style lang="scss" scoped>
