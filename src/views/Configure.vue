@@ -106,6 +106,7 @@
                     label="Exported functions"
                     :value="config?.buildTargets?.[config.target]?.exportedFuncs"
                     :tip-content="exportedFuncsTip"
+                    :rules="configFieldRulesObject.exportedFunctionsRules"
                     @change="saveProjectExportedFuncs"></EditTextField>
                 </v-card-text>
 
@@ -128,7 +129,7 @@
                 :value="config?.buildTargets?.[config.target]?.preloadFiles"
                 :label="'Path to local data file'"
                 :tip-content="generateLocalDataFilesTip()"
-                :rules="localDataFileRules"
+                :rules="configFieldRulesObject.localDataFileRules"
                 @change="saveProjectDataFiles"></EditTextFieldList>
             </div>
           </div>
@@ -392,12 +393,27 @@ const allConfigElemRefObjArr: ConfigElemRefType[] = [
   },
 ];
 
-const localDataFileRules = [
-  (value: string) => {
-    if (value && value.trim()?.length > 0) return true;
-    return "The path can't be empty.";
-  },
-];
+const configFieldRulesObject = {
+  exportedFunctionsRules: [
+    (value: string) => {
+      if (value) {
+        const functionArr = value
+          .trim()
+          .split(",")
+          .map((v) => v.trim());
+        if (functionArr.length === new Set(functionArr).size) return true;
+      }
+
+      return "The exported functions cannot be duplicated.";
+    },
+  ],
+  localDataFileRules: [
+    (value: string) => {
+      if (value && value.trim()?.length > 0) return true;
+      return "The path can't be empty.";
+    },
+  ],
+};
 
 const configOptionGroup = document.getElementsByName("configOption");
 
