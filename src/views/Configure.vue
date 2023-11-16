@@ -82,6 +82,7 @@
 
                 <v-card-text>
                   <EditTextField
+                    ref="editTextFieldInstance4Cflags"
                     need-tip
                     label="Compiler flags"
                     type-name="cflags"
@@ -92,6 +93,7 @@
 
                 <v-card-text>
                   <EditTextField
+                    ref="editTextFieldInstance4Ldflags"
                     need-tip
                     label="Linker flags"
                     type-name="ldflags"
@@ -102,6 +104,7 @@
 
                 <v-card-text>
                   <EditTextField
+                    ref="editTextFieldInstance4ExFuncs"
                     need-tip
                     label="Exported functions"
                     :value="config?.buildTargets?.[config.target]?.exportedFuncs"
@@ -112,10 +115,12 @@
 
                 <v-card-text>
                   <EditTextField
+                    ref="editTextFieldInstance4ExRTM"
                     need-tip
                     label="Exported runtime methods"
                     :value="config?.buildTargets?.[config.target]?.exportedRuntimeMethods"
                     :tip-content="exportedRuntimeMethodsTip"
+                    :rules="configFieldRulesObject.exportedFunctionsRules"
                     @change="saveProjectExportedRuntimeMethods"></EditTextField>
                 </v-card-text>
               </v-card>
@@ -312,6 +317,11 @@
 </template>
 
 <script setup lang="ts">
+/*
+  eslint-disable
+    @typescript-eslint/no-unsafe-member-access,
+    @typescript-eslint/no-unsafe-call
+*/
 import { computed, onMounted, ref } from "vue";
 import { useStore } from "../store";
 import {
@@ -402,9 +412,8 @@ const configFieldRulesObject = {
           .split(",")
           .map((v) => v.trim());
         if (functionArr.length === new Set(functionArr).size) return true;
+        else return "The exported functions cannot be duplicated.";
       }
-
-      return "The exported functions cannot be duplicated.";
     },
   ],
   localDataFileRules: [
@@ -421,6 +430,12 @@ const store = useStore();
 const router = useRouter();
 const route = useRoute();
 const alertReset = ref(false);
+
+const editTextFieldInstance4Cflags = ref<InstanceType<typeof EditTextField>>();
+const editTextFieldInstance4Ldflags = ref<InstanceType<typeof EditTextField>>();
+const editTextFieldInstance4ExFuncs = ref<InstanceType<typeof EditTextField>>();
+const editTextFieldInstance4ExRTM = ref<InstanceType<typeof EditTextField>>();
+
 const buildTarget = ref("static");
 const validElementRefObj = ref<ConfigElemRefType[]>();
 
@@ -530,7 +545,20 @@ async function saveProjectEnv(type: string, env: string | undefined) {
     newEnvs = Object.assign({}, config.value.buildTargets?.[config.value.target].envs);
   }
   newEnvs[type as EnvType] = env ? env : "";
-  return saveConfig({ envs: newEnvs }, true);
+  await saveConfig({ envs: newEnvs }, true);
+
+  if (
+    config.value &&
+    config.value.target &&
+    config.value.buildTargets &&
+    JSON.stringify(config.value.buildTargets[config.value.target].envs) !== JSON.stringify(newEnvs)
+  ) {
+    if (type === "ldflags") {
+      editTextFieldInstance4Ldflags.value?.updateValueManually();
+    } else if (type === "cflags") {
+      editTextFieldInstance4Cflags.value?.updateValueManually();
+    }
+  }
 }
 
 async function saveProjectDataFiles(preloadFiles: string[] | undefined) {
@@ -538,11 +566,36 @@ async function saveProjectDataFiles(preloadFiles: string[] | undefined) {
 }
 
 async function saveProjectExportedFuncs(exportedFuncs: string | undefined) {
-  return saveConfig({ exportedFuncs }, true);
+  await saveConfig({ exportedFuncs }, true);
+  // Check if the exportedFuncs changed after requesting
+  //
+  // In most cases, the config will be updated and changes after
+  // the requesting. Whereas, there is sometimes unusually
+  // like changing `func1, func2, func1` from `func1,func2`,
+  // but got `func1, func2` from the server because of the rules,
+  // the props.value(config.buildTarget[target].exportedFuncs)
+  // keeps the same, and the sub-component could not sync because
+  // it cannot be detected by the watcher in sub-component.
+  if (
+    config.value &&
+    config.value.target &&
+    config.value.buildTargets &&
+    config.value.buildTargets[config.value.target].exportedFuncs !== exportedFuncs
+  ) {
+    editTextFieldInstance4ExFuncs.value?.updateValueManually();
+  }
 }
 
 async function saveProjectExportedRuntimeMethods(exportedRuntimeMethods: string | undefined) {
-  return saveConfig({ exportedRuntimeMethods }, true);
+  await saveConfig({ exportedRuntimeMethods }, true);
+  if (
+    config.value &&
+    config.value.target &&
+    config.value.buildTargets &&
+    config.value.buildTargets[config.value.target].exportedRuntimeMethods !== exportedRuntimeMethods
+  ) {
+    editTextFieldInstance4ExRTM.value?.updateValueManually();
+  }
 }
 
 async function saveProjectOptions(opt: string) {
