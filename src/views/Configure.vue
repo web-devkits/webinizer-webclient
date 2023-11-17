@@ -82,46 +82,58 @@
 
                 <v-card-text>
                   <EditTextField
-                    ref="editTextFieldInstance4Cflags"
                     need-tip
                     label="Compiler flags"
                     type-name="cflags"
                     :value="config?.buildTargets?.[config.target]?.envs?.cflags"
                     :tip-content="generateTemplatesTip()"
-                    @change-with-type="saveProjectEnv"></EditTextField>
+                    :update-value-manually="updateManuallyFlag4Cflags"
+                    @change-with-type="saveProjectEnv"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4Cflags = false
+                    "></EditTextField>
                 </v-card-text>
 
                 <v-card-text>
                   <EditTextField
-                    ref="editTextFieldInstance4Ldflags"
                     need-tip
                     label="Linker flags"
                     type-name="ldflags"
                     :value="config?.buildTargets?.[config.target]?.envs?.ldflags"
                     :tip-content="generateTemplatesTip()"
-                    @change-with-type="saveProjectEnv"></EditTextField>
+                    :update-value-manually="updateManuallyFlag4Ldflags"
+                    @change-with-type="saveProjectEnv"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4Ldflags = false
+                    "></EditTextField>
                 </v-card-text>
 
                 <v-card-text>
                   <EditTextField
-                    ref="editTextFieldInstance4ExFuncs"
                     need-tip
                     label="Exported functions"
                     :value="config?.buildTargets?.[config.target]?.exportedFuncs"
                     :tip-content="exportedFuncsTip"
                     :rules="configFieldRulesObject.exportedFunctionsRules"
-                    @change="saveProjectExportedFuncs"></EditTextField>
+                    :update-value-manually="updateManuallyFlag4ExpFuncs"
+                    @change="saveProjectExportedFuncs"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4ExpFuncs = false
+                    "></EditTextField>
                 </v-card-text>
 
                 <v-card-text>
                   <EditTextField
-                    ref="editTextFieldInstance4ExRTM"
                     need-tip
                     label="Exported runtime methods"
                     :value="config?.buildTargets?.[config.target]?.exportedRuntimeMethods"
                     :tip-content="exportedRuntimeMethodsTip"
                     :rules="configFieldRulesObject.exportedFunctionsRules"
-                    @change="saveProjectExportedRuntimeMethods"></EditTextField>
+                    :update-value-manually="updateManuallyFlag4ExpRTM"
+                    @change="saveProjectExportedRuntimeMethods"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4ExpRTM = false
+                    "></EditTextField>
                 </v-card-text>
               </v-card>
             </div>
@@ -431,10 +443,10 @@ const router = useRouter();
 const route = useRoute();
 const alertReset = ref(false);
 
-const editTextFieldInstance4Cflags = ref<InstanceType<typeof EditTextField>>();
-const editTextFieldInstance4Ldflags = ref<InstanceType<typeof EditTextField>>();
-const editTextFieldInstance4ExFuncs = ref<InstanceType<typeof EditTextField>>();
-const editTextFieldInstance4ExRTM = ref<InstanceType<typeof EditTextField>>();
+const updateManuallyFlag4Cflags = ref(false),
+  updateManuallyFlag4Ldflags = ref(false),
+  updateManuallyFlag4ExpFuncs = ref(false),
+  updateManuallyFlag4ExpRTM = ref(false);
 
 const buildTarget = ref("static");
 const validElementRefObj = ref<ConfigElemRefType[]>();
@@ -554,9 +566,9 @@ async function saveProjectEnv(type: string, env: string | undefined) {
     JSON.stringify(config.value.buildTargets[config.value.target].envs) !== JSON.stringify(newEnvs)
   ) {
     if (type === "ldflags") {
-      editTextFieldInstance4Ldflags.value?.updateValueManually();
+      updateManuallyFlag4Ldflags.value = true;
     } else if (type === "cflags") {
-      editTextFieldInstance4Cflags.value?.updateValueManually();
+      updateManuallyFlag4Cflags.value = true;
     }
   }
 }
@@ -582,7 +594,7 @@ async function saveProjectExportedFuncs(exportedFuncs: string | undefined) {
     config.value.buildTargets &&
     config.value.buildTargets[config.value.target].exportedFuncs !== exportedFuncs
   ) {
-    editTextFieldInstance4ExFuncs.value?.updateValueManually();
+    updateManuallyFlag4ExpFuncs.value = true;
   }
 }
 
@@ -594,7 +606,7 @@ async function saveProjectExportedRuntimeMethods(exportedRuntimeMethods: string 
     config.value.buildTargets &&
     config.value.buildTargets[config.value.target].exportedRuntimeMethods !== exportedRuntimeMethods
   ) {
-    editTextFieldInstance4ExRTM.value?.updateValueManually();
+    updateManuallyFlag4ExpRTM.value = true;
   }
 }
 

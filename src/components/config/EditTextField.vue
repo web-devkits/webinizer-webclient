@@ -116,6 +116,7 @@ const props = defineProps<{
   tipContent?: string;
   rules?: any;
   hasError?: boolean;
+  updateValueManually?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -123,6 +124,7 @@ const emit = defineEmits<{
   (e: "changeWithType", type: string, value: string): void;
   (e: "delete"): void;
   (e: "cancelAdd"): void;
+  (e: "resetUpdateValManuallyFlag"): void;
 }>();
 
 const alert = ref(false);
@@ -207,19 +209,20 @@ watch(
 // because we watch the change of props.value, but when response
 // is the same as the value in state, the value in `edit-text-field`
 // input will be the edit value, we should update the value
-function updateValueManually() {
-  if (editValue.value !== props.value && editStatus.value === EditStatus.UPDATING) {
-    editValue.value = props.value;
-    editStatus.value = EditStatus.DONE;
-    setTimeout(() => {
-      editStatus.value = EditStatus.DEFAULT;
-    }, 1500);
-  }
-}
 
-defineExpose({
-  updateValueManually,
-});
+watch(
+  () => props.updateValueManually,
+  (newVal) => {
+    if (newVal && editValue.value !== props.value && editStatus.value === EditStatus.UPDATING) {
+      editValue.value = props.value;
+      editStatus.value = EditStatus.DONE;
+      emit("resetUpdateValManuallyFlag");
+      setTimeout(() => {
+        editStatus.value = EditStatus.DEFAULT;
+      }, 1500);
+    }
+  }
+);
 
 watch(
   () => props.hasError,
