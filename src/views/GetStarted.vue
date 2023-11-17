@@ -87,7 +87,9 @@
               <p class="psi">{{ lib.version }}</p>
             </div>
             <div class="ps">
-              <button class="select-btn" @click="selectProject(index)">SELECT</button>
+              <button class="select-btn" @click="selectProject(index)">
+                <span :title="lib.path">SELECT</span>
+              </button>
             </div>
           </div>
         </div>
@@ -133,7 +135,9 @@
               <span v-else> - </span>
             </div>
             <div class="project_select_btn">
-              <button class="select-btn" @click="selectProject(index)">select</button>
+              <button class="select-btn" @click="selectProject(index)">
+                <span :title="lib.path">SELECT</span>
+              </button>
             </div>
           </div>
         </div>
