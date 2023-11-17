@@ -67,7 +67,6 @@ export const store = createStore<State>({
       state.root = "";
       state.recipes = [];
       state.projectConfig = undefined;
-      state.needSaveConfig = false;
       state.editFile = undefined;
       state.openFiles = [];
       state.fileDirTree = [];
@@ -96,9 +95,6 @@ export const store = createStore<State>({
         state.projectConfig = { __type__: "ProjectConfig" };
       }
       Object.assign(state.projectConfig, configToMerge);
-    },
-    setNeedSaveConfig(state: State, needSave: boolean) {
-      state.needSaveConfig = needSave;
     },
     setRecommendedBuilders(state: State, builders: webinizer.Builder[]) {
       state.recommendedBuilders = builders;
@@ -233,7 +229,6 @@ export const store = createStore<State>({
 
     async saveProjectConfig({ commit, state }, configToMerge?: { [k: string]: unknown }) {
       try {
-        // if (state.needSaveConfig && state.projectConfig) {
         if (state.projectConfig) {
           let config = null;
           if (configToMerge) {
@@ -250,7 +245,6 @@ export const store = createStore<State>({
             commit("setProjDepUpdateStatus", webinizer.ProjectDepUpdateStatus.done);
           }
         }
-        // commit("setNeedSaveConfig", false);
       } catch (error) {
         commit("setProjDepUpdateStatus", webinizer.ProjectDepUpdateStatus.done);
         throw error as Error;

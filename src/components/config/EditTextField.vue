@@ -101,6 +101,7 @@
 import Alert from "../Alert.vue";
 import { nextTick, ref, watch } from "vue";
 import TipPopover from "../TipPopover.vue";
+import { EditStatus } from "../../common/types/config";
 
 const props = defineProps<{
   noNeedSaveInstantly?: boolean;
@@ -115,6 +116,7 @@ const props = defineProps<{
   tipContent?: string;
   rules?: any;
   hasError?: boolean;
+  updateValueManually?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -122,14 +124,8 @@ const emit = defineEmits<{
   (e: "changeWithType", type: string, value: string): void;
   (e: "delete"): void;
   (e: "cancelAdd"): void;
+  (e: "resetUpdateValManuallyFlag"): void;
 }>();
-
-enum EditStatus {
-  DEFAULT = 0,
-  UPDATING,
-  DONE,
-  FAIL,
-}
 
 const alert = ref(false);
 const editNewItem = ref("");
@@ -199,6 +195,28 @@ watch(
     if (!props.noNeedSaveInstantly) {
       editStatus.value = EditStatus.DONE;
 
+      setTimeout(() => {
+        editStatus.value = EditStatus.DEFAULT;
+      }, 1500);
+    }
+  }
+);
+
+// This function is just invoked by in the very rare condition,
+// which is the props.value keep the same after requesting.
+//
+// In general, the editValue will be the same as the props.value
+// because we watch the change of props.value, but when response
+// is the same as the value in state, the value in `edit-text-field`
+// input will be the edit value, we should update the value
+
+watch(
+  () => props.updateValueManually,
+  (newVal) => {
+    if (newVal && editValue.value !== props.value && editStatus.value === EditStatus.UPDATING) {
+      editValue.value = props.value;
+      editStatus.value = EditStatus.DONE;
+      emit("resetUpdateValManuallyFlag");
       setTimeout(() => {
         editStatus.value = EditStatus.DEFAULT;
       }, 1500);
