@@ -536,7 +536,7 @@ button.select-btn {
 }
 
 button.restore-btn:hover,
-button.select-btn.hover {
+button.select-btn:hover {
   color: var(--white);
   letter-spacing: 1px;
   background: linear-gradient(135deg, var(--p-8) 40%, var(--secondary) 25%);
