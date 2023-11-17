@@ -38,6 +38,7 @@
     @typescript-eslint/no-explicit-any
  */
 import { ref, watch } from "vue";
+import { EditStatus } from "../../common/types/config";
 
 const props = defineProps<{
   readOnly?: boolean;
@@ -51,12 +52,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "change", value: string): void;
 }>();
-
-enum EditStatus {
-  DEFAULT = 0,
-  UPDATING,
-  DONE,
-}
 
 const refValue = ref(props.value);
 const editStatus = ref(EditStatus.DEFAULT);

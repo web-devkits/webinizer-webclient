@@ -14,15 +14,15 @@
 
   <section v-if="root">
     <div class="d-flex justify-space-around">
-      <nav class="nav-body-position hidden-md-and-down">
+      <nav class="nav-body-position hidden-md-and-down text-left">
         <v-list>
-          <v-list-item class="text-left"
+          <v-list-item
             ><template #title><span class="text-h6">Configuration</span></template
             ><template #subtitle><span>Click to jump</span></template></v-list-item
           >
         </v-list>
 
-        <v-list class="text-left" density="compact" nav mandatory>
+        <v-list density="compact" nav mandatory>
           <v-list-item
             v-for="(item, index) in validElementRefObj"
             :key="index"
@@ -45,10 +45,10 @@
           </v-card>
         </div>
 
-        <div v-if="config?.target">
+        <div v-if="config?.target" class="text-left">
           <div :id="ConfigElementId.OverAllEnvVariable" name="configOption" class="bl mr-6 mb-4">
             <v-card variant="elevated" flat>
-              <v-card-item class="text-left mb-10"
+              <v-card-item class="mb-10"
                 ><v-card-title> Overall env variables </v-card-title></v-card-item
               >
               <v-card-text>
@@ -76,7 +76,7 @@
           <div class="g1x2">
             <div :id="ConfigElementId.EnvVariable" name="configOption" class="bl mr-6 mb-4">
               <v-card variant="elevated" flat>
-                <v-card-item class="text-left mb-10"
+                <v-card-item class="mb-10"
                   ><v-card-title> Env variables </v-card-title></v-card-item
                 >
 
@@ -204,11 +204,11 @@
           ></v-card>
         </div>
 
-        <div v-if="config?.isLibrary" class="g1x2">
+        <div v-if="config?.isLibrary" class="g1x2 text-left">
           <div :id="ConfigElementId.Package" name="configOption" class="bl mr-6 mb-4">
             <div v-if="config?.target">
               <v-card variant="elevated" flat>
-                <v-card-item class="text-left mb-10"
+                <v-card-item class="mb-10"
                   ><v-card-title> Package configs </v-card-title></v-card-item
                 >
                 <v-card-text>
@@ -243,7 +243,7 @@
           </div>
           <div :id="ConfigElementId.NativeLibrary" name="configOption" class="bl mb-4">
             <v-card variant="elevated" flat>
-              <v-card-item class="text-left mb-10"
+              <v-card-item class="mb-10"
                 ><v-card-title> Native library info </v-card-title></v-card-item
               >
               <v-card-text>
@@ -412,7 +412,7 @@ const configFieldRulesObject = {
           .split(",")
           .map((v) => v.trim());
         if (functionArr.length === new Set(functionArr).size) return true;
-        else return "The exported functions cannot be duplicated.";
+        else return "The added function/method name cannot be repeated.";
       }
     },
   ],

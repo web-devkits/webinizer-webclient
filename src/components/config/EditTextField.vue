@@ -116,7 +116,6 @@ const props = defineProps<{
   tipContent?: string;
   rules?: any;
   hasError?: boolean;
-  firingRequest?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -124,7 +123,6 @@ const emit = defineEmits<{
   (e: "changeWithType", type: string, value: string): void;
   (e: "delete"): void;
   (e: "cancelAdd"): void;
-  (e: "toggleFiringRequest", flag: boolean): void;
 }>();
 
 const alert = ref(false);
