@@ -259,7 +259,7 @@ function initWebsocket() {
     log.info(`The websocket connection of ${root.value} disconnected`);
   };
 
-  wsClient.onmessage = (data: any) => {
+  wsClient.onmessage = async (data: any) => {
     log.info("data from websocket server", JSON.parse(data.data as string));
     const dataObj = JSON.parse(data.data as string);
     // only handle the `UpdateBuildStatus` message in this
@@ -267,6 +267,10 @@ function initWebsocket() {
     if (dataObj.wsMsgType === WsMessageType.UpdateBuildStatus) {
       const newBuildStatus = dataObj.buildStatus;
       store.commit("setBuildingStatus", newBuildStatus as string);
+      if (newBuildStatus !== "building" || newBuildStatus !== "building_with_recipes") {
+        //get recipes after the building
+        await store.dispatch("getRecipes");
+      }
     }
   };
 }
