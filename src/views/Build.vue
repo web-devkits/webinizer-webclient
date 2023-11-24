@@ -130,7 +130,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+/*
+  eslint-disable
+    @typescript-eslint/no-unsafe-assignment,
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unsafe-member-access,
+    @typescript-eslint/no-unsafe-call
+ */
+
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useStore } from "../store";
 import { getProjectName } from "../common/utility/utility";
@@ -141,6 +149,8 @@ import lodash from "lodash";
 import { log } from "../helper";
 import { EditorType } from "../components/editor/customerEditor";
 import LogEditor from "../components/editor/Editor.vue";
+import WebSocket from "isomorphic-ws";
+import { WS_SERVER_PATH, WsMessageType } from "../webinizer";
 
 const type = EditorType.LOG;
 const path = "";
@@ -156,6 +166,8 @@ const showLogEditor = ref(true);
 const disabledBuildBtn = ref(false);
 const loadingBuildBtn = ref(false);
 const showSuccessBuild = ref(false);
+
+let wsClient: WebSocket;
 
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
@@ -174,13 +186,14 @@ onMounted(async () => {
       store.commit("setRoot", route.query.root);
     }
     if (root.value) {
-      await store.dispatch("fetchProjectConfig");
-      await store.dispatch("getProjectBuildStatus");
       //NOTE - if user refresh or re-enter the page,
       //       should keep the build status, only get
       //       latest recipes when building process
       //       finish, otherwise use the latest recipes
       //       in state
+      await store.dispatch("fetchProjectConfig");
+      await store.dispatch("getProjectBuildStatus");
+      initWebsocket();
     }
 
     if (buildStatusType.value === "building") {
@@ -200,6 +213,13 @@ onMounted(async () => {
     }
   } catch (error) {
     log.errMsgNCuz(error);
+  }
+});
+
+onUnmounted(() => {
+  if (wsClient) {
+    // close the websocket connection before leaving the page
+    wsClient.close();
   }
 });
 
@@ -225,6 +245,32 @@ function logEditorSwitch() {
     ? (buildLogIcon.value = "mdi-arrow-up-drop-circle-outline")
     : (buildLogIcon.value = "mdi-arrow-down-drop-circle-outline");
 }
+
+function initWebsocket() {
+  //NOTE - create websocket connection between the browser and
+  //       server, the server will send the message when parent
+  //       project triggers the building process of deps
+  wsClient = new WebSocket(`${WS_SERVER_PATH}?root=${root.value}`);
+
+  wsClient.onopen = () => {
+    log.info("The websocket connected");
+  };
+  wsClient.onclose = () => {
+    log.info(`The websocket connection of ${root.value} disconnected`);
+  };
+
+  wsClient.onmessage = (data: any) => {
+    log.info("data from websocket server", JSON.parse(data.data as string));
+    const dataObj = JSON.parse(data.data as string);
+    // only handle the `UpdateBuildStatus` message in this
+    // `Build` page
+    if (dataObj.wsMsgType === WsMessageType.UpdateBuildStatus) {
+      const newBuildStatus = dataObj.buildStatus;
+      store.commit("setBuildingStatus", newBuildStatus as string);
+    }
+  };
+}
+
 async function build() {
   showLog.value = true;
   await buildWithDebounce();

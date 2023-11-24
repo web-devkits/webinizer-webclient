@@ -18,6 +18,12 @@ import { useToast } from "vue-toastification";
 const toast = useToast();
 
 export const API_SERVER = `http://${location.hostname}:16666`;
+export const WS_SERVER_PATH = `ws://${location.hostname}:16666/ws`;
+
+export enum WsMessageType {
+  UpdateBuildStatus = "updateBuildStatus",
+  UpdateDependenciesConfig = "updateDependenciesConfig",
+}
 
 export const enum ActionsTypes {
   BuilderArgsChange = 1,
