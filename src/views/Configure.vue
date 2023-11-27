@@ -359,6 +359,7 @@ import EditDepConfig from "../components/config/EditDepConfig.vue";
 import Alert from "../components/Alert.vue";
 import RadioButtons from "../components/config/RadioButtons.vue";
 import { log } from "../helper";
+import WebSocket from "isomorphic-ws";
 
 enum ConfigElementId {
   BuildTarget = "BUILD_TARGET",
@@ -555,7 +556,14 @@ function initWebsocket() {
     // only handle the `UpdateDependenciesConfig` message in this
     // `Configure` page
     if (dataObj.wsMsgType === WsMessageType.UpdateDependenciesConfig) {
-      await fetchDependencyConfig();
+      if (root.value) {
+        // for sub-project, should update the config like the
+        // build target that is changed from the main project
+        await store.dispatch("fetchProjectConfig");
+        await updateBuildTarget();
+        // for main project, re-fetch dependency config to update
+        await fetchDependencyConfig();
+      }
     }
   };
 }
@@ -726,6 +734,16 @@ async function fetchDependencyConfig() {
   }
 }
 
+async function updateBuildTarget() {
+  if (config.value?.target) {
+    buildTarget.value = config.value?.target;
+  } else {
+    await store.dispatch("saveProjectConfig", {
+      target: buildTarget.value,
+    });
+  }
+}
+
 onMounted(async () => {
   try {
     if (route.query.root) {
@@ -735,13 +753,7 @@ onMounted(async () => {
       await store.dispatch("fetchProjectConfig");
       await store.dispatch("fetchTemplateLiterals");
 
-      if (config.value?.target) {
-        buildTarget.value = config.value?.target;
-      } else {
-        await store.dispatch("saveProjectConfig", {
-          target: buildTarget.value,
-        });
-      }
+      await updateBuildTarget();
 
       await fetchDependencyConfig();
 
