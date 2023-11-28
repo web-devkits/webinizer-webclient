@@ -332,9 +332,11 @@
 /*
   eslint-disable
     @typescript-eslint/no-unsafe-member-access,
-    @typescript-eslint/no-unsafe-call
+    @typescript-eslint/no-unsafe-call,
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unsafe-assignment
 */
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useStore } from "../store";
 import {
   ProjectEnv,
@@ -345,6 +347,8 @@ import {
   ProjectPkgInfo,
   PkgInfoType,
   ConfigParameterTypes,
+  WS_SERVER_PATH,
+  WsMessageType,
 } from "../webinizer";
 import { useRouter, useRoute } from "vue-router";
 import { getProjectName } from "../common/utility/utility";
@@ -355,6 +359,7 @@ import EditDepConfig from "../components/config/EditDepConfig.vue";
 import Alert from "../components/Alert.vue";
 import RadioButtons from "../components/config/RadioButtons.vue";
 import { log } from "../helper";
+import WebSocket from "isomorphic-ws";
 
 enum ConfigElementId {
   BuildTarget = "BUILD_TARGET",
@@ -377,6 +382,8 @@ interface ConfigElemRefType {
 // navigation item, the window will scroll to the element, it will
 // also trigger the scroll event handler.
 let isClicking = false;
+
+let wsClient: WebSocket;
 
 const tip =
   "Select the <b>static</b> build target if you want to build your project with static linking. All dependent libraries will be built into Wasm archive files (.a), and then linked to the main project to get a standalone Wasm module with no external dependencies.\n\nSelect the <b>shared</b> build target if you want to build your project with dynamic linking. All dependent libraries will be built into Wasm binary files (.wasm/.so) as side modules (using flag -sSIDE_MODULE), whose exports will be dynamically imported into the context of main project's Wasm module (using flag -sMAIN_MODULE) by JavaScript glue code.\n\nMore details for static and dynamic linking are available <a href='https://emscripten.org/docs/compiling/Dynamic-Linking.html' target='_blank'>here</a>.";
@@ -528,6 +535,37 @@ function scrollEventHandler() {
       }
     }
   }
+}
+
+function initWebsocket() {
+  //NOTE - create websocket connection between the browser and
+  //       server, the server will send the message when dependency
+  //       project updates the config
+  wsClient = new WebSocket(`${WS_SERVER_PATH}?root=${root.value}`);
+
+  wsClient.onopen = () => {
+    log.info("The websocket connected");
+  };
+  wsClient.onclose = () => {
+    log.info(`The websocket connection of ${root.value} disconnected`);
+  };
+
+  wsClient.onmessage = async (data: any) => {
+    log.info("data from websocket server", JSON.parse(data.data as string));
+    const dataObj = JSON.parse(data.data as string);
+    // only handle the `UpdateDependenciesConfig` message in this
+    // `Configure` page
+    if (dataObj.wsMsgType === WsMessageType.UpdateDependenciesConfig) {
+      if (root.value) {
+        // for sub-project, should update the config like the
+        // build target that is changed from the main project
+        await store.dispatch("fetchProjectConfig");
+        await updateBuildTarget();
+        // for main project, re-fetch dependency config to update
+        await fetchDependencyConfig();
+      }
+    }
+  };
 }
 
 async function saveConfig(configToMerge: { [k: string]: unknown }, forTarget = false) {
@@ -683,6 +721,29 @@ async function saveProjectNativeLib(type: string, infoVal: string | undefined) {
   return saveConfig({ nativeLibrary: newInfo });
 }
 
+async function fetchDependencyConfig() {
+  // fetch dependency project configs
+  if (config.value?.resolutions && config.value?.resolutions.length) {
+    // fresh fetch for dependency configs
+    store.commit("resetDependencyConfigs");
+    await Promise.all(
+      config.value?.resolutions.map(async (pkgResolution) => {
+        await store.dispatch("fetchDependencyProjectConfig", pkgResolution);
+      })
+    );
+  }
+}
+
+async function updateBuildTarget() {
+  if (config.value?.target) {
+    buildTarget.value = config.value?.target;
+  } else {
+    await store.dispatch("saveProjectConfig", {
+      target: buildTarget.value,
+    });
+  }
+}
+
 onMounted(async () => {
   try {
     if (route.query.root) {
@@ -692,24 +753,9 @@ onMounted(async () => {
       await store.dispatch("fetchProjectConfig");
       await store.dispatch("fetchTemplateLiterals");
 
-      if (config.value?.target) {
-        buildTarget.value = config.value?.target;
-      } else {
-        await store.dispatch("saveProjectConfig", {
-          target: buildTarget.value,
-        });
-      }
+      await updateBuildTarget();
 
-      // fetch dependency project configs
-      if (config.value?.resolutions && config.value?.resolutions.length) {
-        // fresh fetch for dependency configs
-        store.commit("resetDependencyConfigs");
-        await Promise.all(
-          config.value?.resolutions.map(async (pkgResolution) => {
-            await store.dispatch("fetchDependencyProjectConfig", pkgResolution);
-          })
-        );
-      }
+      await fetchDependencyConfig();
 
       // element has been rendered after mounted,assign value
       filterAllConfigElemRefObjArr();
@@ -731,9 +777,19 @@ onMounted(async () => {
       }
 
       window.addEventListener("scroll", scrollEventHandler);
+
+      // init websocket connection
+      initWebsocket();
     }
   } catch (error) {
     log.errMsgNCuz(error);
+  }
+});
+
+onUnmounted(() => {
+  if (wsClient) {
+    // close the websocket connection before leaving the page
+    wsClient.close();
   }
 });
 </script>

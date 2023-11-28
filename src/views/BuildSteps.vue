@@ -47,14 +47,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+/*
+  eslint-disable
+    @typescript-eslint/no-unsafe-assignment,
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unsafe-member-access,
+    @typescript-eslint/no-unsafe-call
+ */
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useStore } from "../store";
 import { useRouter, useRoute } from "vue-router";
-import { Builder } from "../webinizer";
+import { Builder, WS_SERVER_PATH, WsMessageType } from "../webinizer";
 import EditBuilderList from "../components/config/EditBuilderList.vue";
 import { getProjectName } from "../common/utility/utility";
 import { log } from "../helper";
 import RadioButtons from "../components/config/RadioButtons.vue";
+import WebSocket from "isomorphic-ws";
+
+let wsClient: WebSocket;
 
 const tip =
   "Select the <b>static</b> build target if you want to build your project with static linking. All dependent libraries will be built into Wasm archive files (.a), and then linked to the main project to get a standalone Wasm module with no external dependencies.\n\nSelect the <b>shared</b> build target if you want to build your project with dynamic linking. All dependent libraries will be built into Wasm binary files (.wasm/.so) as side modules (using flag -sSIDE_MODULE), whose exports will be dynamically imported into the context of main project's Wasm module (using flag -sMAIN_MODULE) by JavaScript glue code.\n\nMore details for static and dynamic linking are available <a href='https://emscripten.org/docs/compiling/Dynamic-Linking.html' target='_blank'>here</a>.";
@@ -67,28 +77,34 @@ const buildTarget = ref("static");
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
 
-onMounted(async () => {
-  try {
-    if (route.query.root) {
-      store.commit("setRoot", route.query.root);
-    }
+function initWebsocket() {
+  //NOTE - create websocket connection between the browser and
+  //       server, the server will send the message when dependency
+  //       project updates the config
+  wsClient = new WebSocket(`${WS_SERVER_PATH}?root=${root.value}`);
 
-    if (root.value) {
-      await store.dispatch("fetchProjectConfig");
-      await store.dispatch("fetchTemplateLiterals");
+  wsClient.onopen = () => {
+    log.info("The websocket connected");
+  };
+  wsClient.onclose = () => {
+    log.info(`The websocket connection of ${root.value} disconnected`);
+  };
 
-      if (config.value?.target) {
-        buildTarget.value = config.value?.target;
-      } else {
-        await store.dispatch("saveProjectConfig", {
-          target: buildTarget.value,
-        });
+  wsClient.onmessage = async (data: any) => {
+    log.info("data from websocket server", JSON.parse(data.data as string));
+    const dataObj = JSON.parse(data.data as string);
+    // only handle the `UpdateDependenciesConfig` message in this
+    // `Configure` page
+    if (dataObj.wsMsgType === WsMessageType.UpdateDependenciesConfig) {
+      if (root.value) {
+        // for sub-project, should update the config like the
+        // build target that is changed from the main project
+        await store.dispatch("fetchProjectConfig");
+        await updateBuildTarget();
       }
     }
-  } catch (error) {
-    log.errMsgNCuz(error);
-  }
-});
+  };
+}
 
 async function saveProjectBuilders(builders: Builder[] | undefined) {
   try {
@@ -107,5 +123,39 @@ async function createOrChangeBuildTarget(value: string) {
     });
   }
 }
+
+async function updateBuildTarget() {
+  if (config.value?.target) {
+    buildTarget.value = config.value?.target;
+  } else {
+    await store.dispatch("saveProjectConfig", {
+      target: buildTarget.value,
+    });
+  }
+}
+
+onMounted(async () => {
+  try {
+    if (route.query.root) {
+      store.commit("setRoot", route.query.root);
+    }
+
+    if (root.value) {
+      await store.dispatch("fetchProjectConfig");
+      await store.dispatch("fetchTemplateLiterals");
+      await updateBuildTarget();
+      initWebsocket();
+    }
+  } catch (error) {
+    log.errMsgNCuz(error);
+  }
+});
+
+onUnmounted(() => {
+  if (wsClient) {
+    // close the websocket connection before leaving the page
+    wsClient.close();
+  }
+});
 </script>
 <style lang="scss" scoped></style>
