@@ -541,7 +541,7 @@ const formFieldRulesObject = {
       if (!value || value.trim()?.length < 0) {
         return "The name is required.";
       }
-      if (/^(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(value)) {
+      if (/^(?:@(?:[a-zA-Z0-9-*~][a-z0-9-*._~]*)?\/)?[a-zA-Z0-9-~][a-zA-Z0-9-._~]*$/.test(value)) {
         return true;
       } else {
         return "The name format is not correct. It should not contain special characters, such as space, \\, *, etc. If you want to connect multiple words, use a hyphen (-) instead.";
@@ -883,6 +883,7 @@ async function uploadProjectFile() {
       }
     } catch (error) {
       store.commit("setProjAddStatus", ProjectAddStatus.done);
+      refUploadProgress.value = 0;
       log.errMsgNCuz(error);
       return;
     }

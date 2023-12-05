@@ -447,7 +447,7 @@ export const store = createStore<State>({
       try {
         const result = await webinizer.uploadProjectFile(formData);
         commit("setProjAddStatus", result.status);
-        if (result.path) commit("setRoot", result.path);
+        if (result.path && result.path !== "undefined") commit("setRoot", result.path);
       } catch (error) {
         throw error as Error;
       }
