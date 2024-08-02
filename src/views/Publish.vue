@@ -30,26 +30,125 @@
       </v-expansion-panels>
     </div>
 
-    <v-tooltip location="bottom" :disabled="settings?.registry ? true : false">
-      <template #activator="{ props }">
-        <div v-bind="props" class="d-flex justify-center">
-          <v-btn
-            tile
-            color="blue"
-            class="mainbtn"
-            append-icon="mdi-publish"
-            :disabled="disabledPublishBtn || settings?.registry ? false : true"
-            :loading="publishStatus === webinizer.ProjectPublishStatus.processing ? true : false"
-            @click="showAlert"
-            >PUBLISH</v-btn
-          >
+    <div class="g1x2 mb-8">
+      <div class="bl mr-6">
+        <v-card variant="elevated" class="text-left" flat>
+          <v-card-item class="mb-10"><v-card-title> Author info </v-card-title></v-card-item>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Name"
+              type-name="name"
+              :tip-content="'Please enter your name here.'"
+              :value="config?.author?.name"
+              @change-with-type="saveAuthorConfig"></EditTextField>
+          </v-card-text>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Email"
+              type-name="email"
+              :tip-content="'Please enter your email address.'"
+              :value="config?.author?.email"
+              :rules="configFieldRulesObject.emailFieldRules"
+              @change-with-type="saveAuthorConfig"></EditTextField>
+          </v-card-text>
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="URL"
+              type-name="url"
+              :tip-content="'Please enter the URL to your homepage if any.'"
+              :value="config?.author?.url"
+              :rules="configFieldRulesObject.urlFieldRules"
+              @change-with-type="saveAuthorConfig"></EditTextField>
+          </v-card-text>
+        </v-card>
+      </div>
+
+      <div class="bl">
+        <v-card variant="elevated" class="text-left" flat>
+          <v-card-item class="mb-10"><v-card-title> Package info </v-card-title></v-card-item>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Repository"
+              type-name="repository"
+              :tip-content="'Please enter the URL to the project git repository.'"
+              :value="config?.repository?.url"
+              :rules="configFieldRulesObject.repositoryFieldRules"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Homepage"
+              type-name="homepage"
+              :tip-content="'Please enter the URL to the project homepage.'"
+              :value="config?.homepage"
+              :rules="configFieldRulesObject.urlFieldRules"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="Bugs"
+              type-name="bugs"
+              :tip-content="'Please enter the url to your project\'s issue tracker.'"
+              :value="config?.bugs"
+              :rules="configFieldRulesObject.urlFieldRules"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+
+          <v-card-text>
+            <EditTextField
+              need-tip
+              label="License"
+              type-name="license"
+              :tip-content="'Please enter your project license.'"
+              :value="config?.license"
+              @change-with-type="saveProjectConfig"></EditTextField>
+          </v-card-text>
+        </v-card>
+
+        <div class="mt-n6">
+          <EditChipList
+            :title="'Keywords'"
+            :value="config?.keywords"
+            :default-items="defaultKeywordsArray"
+            :item-label="'New keyword'"
+            :rules="configFieldRulesObject.keywordsFieldRules"
+            :need-add="true"
+            :need-tip="true"
+            :tip-content="'Please set the project keywords.'"
+            @change="saveKeywords"></EditChipList>
         </div>
-      </template>
+      </div>
+    </div>
+
+    <template v-if="disabledPublishBtn">
       <span
-        >Add a valid registry address in the Settings page to enable publishing a project to
-        registry.</span
-      >
-    </v-tooltip>
+        title="Add a valid registry address in the Settings page to enable publishing a project to registry.">
+        <v-btn tile disabled color="grey" class="mainbtn" append-icon="mdi-publish-off">
+          PUBLISH
+        </v-btn>
+      </span>
+    </template>
+
+    <template v-else
+      ><v-btn
+        tile
+        color="blue"
+        class="mainbtn"
+        append-icon="mdi-publish"
+        :loading="publishStatus === webinizer.ProjectPublishStatus.processing ? true : false"
+        @click="showAlert">
+        PUBLISH
+      </v-btn>
+    </template>
   </div>
 
   <Transition name="slide-fade">
@@ -71,8 +170,11 @@ import { log } from "../helper";
 import * as webinizer from "../webinizer";
 import { getProjectName } from "../common/utility/utility";
 import { useToast } from "vue-toastification";
+import { cloneDeep } from "lodash";
 import Alert from "../components/Alert.vue";
 import Markdown from "../components/Markdown.vue";
+import EditTextField from "../components/config/EditTextField.vue";
+import EditChipList from "../components/config/EditChipList.vue";
 
 const store = useStore();
 const route = useRoute();
@@ -80,13 +182,15 @@ const toast = useToast();
 
 const panel = ref([0]);
 const alert = ref(false);
-const disabledPublishBtn = ref(false);
+const defaultKeywordsArray = ref(["webinizer"]);
 
 const config = computed(() => store.state.projectConfig);
 const root = computed(() => store.state.root);
 const buildStatusType = computed(() => store.state.buildingStatus);
 const publishStatus = computed(() => store.state.projPublishStatus);
 const settings = computed(() => store.state.webinizerSettings);
+
+const disabledPublishBtn = ref(settings.value?.registry ? false : true);
 
 const publishNotice = `Webinizer supports publishing a project to a registry that is npm compatible as an \`experimental\` feature.
 
@@ -101,6 +205,71 @@ const publishNotice = `Webinizer supports publishing a project to a registry tha
 const projectSummary = `Do you want to publish the project ${config.value?.name || ""}@${
   config.value?.version || ""
 } to the registry ${settings.value?.registry || ""} ?`;
+
+const configFieldRulesObject = {
+  requiredFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) return true;
+      return "This field is required.";
+    },
+  ],
+
+  emailFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) {
+        if (
+          /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/.test(
+            value.trim()
+          )
+        )
+          return true;
+        else return "The email format is not correct.";
+      }
+      return true;
+    },
+  ],
+
+  urlFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) {
+        if (/^(https|http):\/\//.test(value.trim())) return true;
+        return "The URL address must be full url, starting with 'http://' or 'https://'.";
+      }
+      return true;
+    },
+  ],
+
+  repositoryFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) {
+        if (/^(https|https\+git|git\+https|git):\/\//.test(value.trim())) return true;
+        else
+          return "The URL format of the git repository is not correct. Please start with https:// or git://.";
+      }
+      return true;
+    },
+  ],
+
+  keywordsFieldRules: [
+    (value: string) => {
+      if (value && value.trim()) return true;
+      return "The keyword can't be empty.";
+    },
+    (value: string) => {
+      if (/^[A-Za-z](?:[_\\.-]?[A-Za-z0-9]+)*$/.test(value.trim())) return true;
+      else return "The keyword format is not correct.";
+    },
+    (value: string) => {
+      if (value && value.trim().length < 50) return true;
+      else return "The keyword length should be less than 50.";
+    },
+    // if the new keyword has been added
+    (value: string) => {
+      if (!config.value?.keywords?.includes(value)) return true;
+      else return "The keyword has been added already.";
+    },
+  ],
+};
 
 function showAlert() {
   // show project summary alert to users before publishing to the registry
@@ -117,6 +286,35 @@ async function publish() {
   }
 }
 
+async function saveConfig(configToMerge?: { [k: string]: unknown }) {
+  try {
+    if (configToMerge) {
+      await store.dispatch("saveProjectConfig", configToMerge);
+    } else {
+      await store.dispatch("saveProjectConfig");
+    }
+  } catch (error) {
+    log.errMsgNCuz(error);
+  }
+}
+
+async function saveAuthorConfig(type: string, value: string | undefined) {
+  const newAuthorConfig =
+    config.value && config.value.author
+      ? Object.assign({}, config.value.author, { [type]: value })
+      : { [type]: value };
+  return saveConfig({ author: newAuthorConfig });
+}
+
+async function saveKeywords(value: string[] | undefined) {
+  return saveConfig({ keywords: value });
+}
+
+async function saveProjectConfig(type: string, value: string | undefined) {
+  if (type === "repository") return saveConfig({ repository: { type: "git", url: value } });
+  return saveConfig({ [type]: value });
+}
+
 onMounted(async () => {
   try {
     await store.dispatch("fetchWebinizerSettings");
@@ -125,6 +323,15 @@ onMounted(async () => {
     }
     if (root.value) {
       await store.dispatch("fetchProjectConfig");
+      // check if the default keywords are filled in config
+      // updated if the default keywords are not set
+      const keywordsNeedUpdate = defaultKeywordsArray.value.filter(
+        (item) => !config.value?.keywords?.includes(item)
+      );
+      if (keywordsNeedUpdate.length > 0) {
+        const existedKeywords = cloneDeep(config.value?.keywords) || [];
+        await saveKeywords([...keywordsNeedUpdate, ...existedKeywords]);
+      }
     }
     if (buildStatusType.value === "building" || buildStatusType.value === "building_with_recipes") {
       disabledPublishBtn.value = true;

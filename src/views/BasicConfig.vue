@@ -34,51 +34,68 @@
               <span v-if="!showDependentArea" class="hidden-md-and-down">clone from github</span>
               <v-icon title="Clone from github" end> mdi-github </v-icon></v-tab
             >
-            <v-tooltip location="top" :disabled="settings?.registry ? true : false">
-              <template #activator="{ props }">
-                <div v-bind="props">
-                  <v-tab
-                    :value="AddProjectType.registry"
-                    :disabled="settings?.registry ? false : true">
-                    <span v-if="!showDependentArea" class="hidden-md-and-down"
-                      >add from registry</span
-                    >
-                    <v-icon title="Add from registry" end> mdi-cloud-download </v-icon></v-tab
-                  >
-                </div>
-              </template>
+
+            <template v-if="!settings?.registry">
               <span
-                >Add a valid registry address in the Settings page to enable adding a project from
-                registry.</span
-              >
-            </v-tooltip>
+                :value="AddProjectType.registry"
+                title="Add a valid registry address in the Settings page to enable adding a project from registry.">
+                <v-tab :value="AddProjectType.registry" disabled>
+                  <span v-if="!showDependentArea" class="hidden-md-and-down"
+                    >add from registry</span
+                  >
+                  <v-icon title="Add from registry" end> mdi-cloud-download </v-icon></v-tab
+                >
+              </span>
+            </template>
+
+            <template v-else>
+              <v-tab :value="AddProjectType.registry">
+                <span v-if="!showDependentArea" class="hidden-md-and-down">add from registry</span>
+                <v-icon title="Add from registry" end> mdi-cloud-download </v-icon></v-tab
+              ></template
+            >
           </v-tabs>
 
           <v-window v-model="tabValue" class="mt-4">
             <v-window-item :value="AddProjectType.upload">
               <v-form ref="formUpload" class="mt-8" @submit.prevent>
-                <div class="g1x2r" style="grid-column-gap: 1rem">
-                  <EditTextField
-                    no-need-save-instantly
-                    :label="'Project name'"
-                    :value="projName"
-                    :rules="formFieldRulesObject.fieldNameRules"
-                    @change="
-                      (name) => {
-                        projName = name;
-                      }
-                    "></EditTextField>
+                <div class="d-flex">
+                  <div class="pr-4 mt-n4 align-self-baseline flex-grow-0 flex-shrink-0">
+                    <Icons
+                      :icons="icons"
+                      :selected-icon="selectedIcon"
+                      :upload-icon="uploadIcon"
+                      @upload="iconChangeHandler"
+                      @change="selectIconHandler"
+                      @clear="uploadIcon = []"
+                      @get-icons="getAvailableIcons"></Icons>
+                  </div>
 
-                  <EditTextField
-                    no-need-save-instantly
-                    :label="'Project version'"
-                    :value="projVersion"
-                    :rules="formFieldRulesObject.fieldVersionRules"
-                    @change="
-                      (version) => {
-                        projVersion = version;
-                      }
-                    "></EditTextField>
+                  <div class="flex-grow-1 flex-shrink-0">
+                    <div class="g1x2r" style="grid-column-gap: 1rem">
+                      <EditTextField
+                        no-need-save-instantly
+                        :label="'Project name'"
+                        :value="projName"
+                        :rules="formFieldRulesObject.fieldNameRules"
+                        @change="
+                          (name) => {
+                            projName = name;
+                          }
+                        "></EditTextField>
+
+                      <EditTextField
+                        no-need-save-instantly
+                        :label="'Project version'"
+                        :value="projVersion"
+                        :rules="formFieldRulesObject.fieldVersionRules"
+                        @change="
+                          (version) => {
+                            projVersion = version;
+                          }
+                        "></EditTextField>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="mt-8">
@@ -103,11 +120,18 @@
                   validate-on="input"
                   accept=".zip"
                   variant="outlined"
-                  @change="fileChangeHandler($event)"></v-file-input>
+                  @change="fileChangeHandler($event)">
+                  <template #selection="{ fileNames }">
+                    <template v-for="fileName in fileNames" :key="fileName">
+                      <v-chip size="small" label color="blue" class="me-1">
+                        {{ fileName }}
+                      </v-chip>
+                    </template>
+                  </template></v-file-input
+                >
                 <v-progress-linear
                   color="blue"
                   :model-value="refUploadProgress"></v-progress-linear>
-
                 <v-checkbox
                   class="mt-4 mb-n5"
                   color="blue"
@@ -119,28 +143,42 @@
 
             <v-window-item :value="AddProjectType.clone">
               <v-form ref="formClone" class="mt-8" @submit.prevent>
-                <div class="g1x2r" style="grid-column-gap: 1rem">
-                  <EditTextField
-                    no-need-save-instantly
-                    :label="'Project name'"
-                    :value="projName"
-                    :rules="formFieldRulesObject.fieldNameRules"
-                    @change="
-                      (name) => {
-                        projName = name;
-                      }
-                    "></EditTextField>
+                <div class="d-flex">
+                  <div class="pr-4 mt-n4 align-self-baseline flex-grow-0 flex-shrink-0">
+                    <Icons
+                      :icons="icons"
+                      :selected-icon="selectedIcon"
+                      :upload-icon="uploadIcon"
+                      @upload="iconChangeHandler"
+                      @change="selectIconHandler"
+                      @clear="uploadIcon = []"
+                      @get-icons="getAvailableIcons"></Icons>
+                  </div>
+                  <div class="flex-grow-1 flex-shrink-0">
+                    <div class="g1x2r" style="grid-column-gap: 1rem">
+                      <EditTextField
+                        no-need-save-instantly
+                        :label="'Project name'"
+                        :value="projName"
+                        :rules="formFieldRulesObject.fieldNameRules"
+                        @change="
+                          (name) => {
+                            projName = name;
+                          }
+                        "></EditTextField>
 
-                  <EditTextField
-                    no-need-save-instantly
-                    :label="'Project version'"
-                    :value="projVersion"
-                    :rules="formFieldRulesObject.fieldVersionRules"
-                    @change="
-                      (version) => {
-                        projVersion = version;
-                      }
-                    "></EditTextField>
+                      <EditTextField
+                        no-need-save-instantly
+                        :label="'Project version'"
+                        :value="projVersion"
+                        :rules="formFieldRulesObject.fieldVersionRules"
+                        @change="
+                          (version) => {
+                            projVersion = version;
+                          }
+                        "></EditTextField>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="mt-8">
@@ -223,25 +261,39 @@
           >
         </v-card-text>
 
-        <div class="g1x2r" style="grid-column-gap: 1rem">
-          <v-card-text>
-            <EditTextField
-              v-if="root"
-              read-only
-              :label="'Project name'"
-              :value="config?.name"
-              @change="saveProjectName"></EditTextField>
-          </v-card-text>
+        <v-card-text v-if="root">
+          <div class="d-flex">
+            <div class="pr-4 mt-n4 align-self-baseline flex-grow-0 flex-shrink-0">
+              <Icons
+                show-action
+                :exist-upload-icon="existUploadIcon"
+                :icons="icons"
+                :selected-icon="selectedIcon"
+                :upload-icon="uploadIcon"
+                @upload="iconChangeHandler"
+                @change="selectIconHandler"
+                @clear="uploadIcon = []"
+                @get-icons="getAvailableIcons"
+                @upload-immediately="uploadProjectIcon"
+                @remove-icon="removeIcon"></Icons>
+            </div>
+            <div class="flex-grow-1 flex-shrink-0">
+              <div class="g1x2r" style="grid-column-gap: 1rem">
+                <EditTextField
+                  read-only
+                  :label="'Project name'"
+                  :value="config?.name"
+                  @change="saveProjectName"></EditTextField>
 
-          <v-card-text>
-            <EditTextField
-              v-if="root"
-              :label="'Project version'"
-              :value="config?.version"
-              :rules="formFieldRulesObject.fieldVersionRules"
-              @change="saveProjectVersion"></EditTextField>
-          </v-card-text>
-        </div>
+                <EditTextField
+                  :label="'Project version'"
+                  :value="config?.version"
+                  :rules="formFieldRulesObject.fieldVersionRules"
+                  @change="saveProjectVersion"></EditTextField>
+              </div>
+            </div>
+          </div>
+        </v-card-text>
 
         <v-card-text v-if="root">
           <EditTextAreaVue
@@ -426,6 +478,7 @@
 import EditTextAreaVue from "../components/config/EditTextArea.vue";
 import EditTextField from "../components/config/EditTextField.vue";
 import Alert from "../components/Alert.vue";
+import Icons from "../components/Icons.vue";
 
 import { useStore } from "../store";
 import { useRoute, useRouter } from "vue-router";
@@ -435,11 +488,13 @@ import { cloneDeep } from "lodash";
 import { log } from "../helper";
 import { convertDate } from "../common/utility/utility";
 import {
+  API_SERVER,
   ProjectAddStatus,
   ProjectDepUpdateStatus,
   PackageSearchResult,
   search as searchRegistry,
   ConfigParameterTypes,
+  ProjectIcon,
 } from "../webinizer";
 import { useToast } from "vue-toastification";
 import lodash from "lodash";
@@ -464,7 +519,6 @@ const toast = useToast();
 const route = useRoute();
 const store = useStore();
 const router = useRouter();
-
 let deleteIdx = -1;
 const projectChunkSize = 512 * 1024;
 const localPrefixStr = "[ Local ] - ";
@@ -487,7 +541,7 @@ const formFieldRulesObject = {
       if (!value || value.trim()?.length < 0) {
         return "The name is required.";
       }
-      if (/^(?:@(?:[a-z0-9-*~][a-z0-9-*._~]*)?\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(value)) {
+      if (/^(?:@(?:[a-zA-Z0-9-*~][a-z0-9-*._~]*)?\/)?[a-zA-Z0-9-~][a-zA-Z0-9-._~]*$/.test(value)) {
         return true;
       } else {
         return "The name format is not correct. It should not contain special characters, such as space, \\, *, etc. If you want to connect multiple words, use a hyphen (-) instead.";
@@ -517,6 +571,8 @@ const projIsLibrary = ref(false);
 const refUploadProgress = ref();
 const selectedType = ref<AddProjectType | unknown>(AddProjectType.upload);
 const projectFile = ref<File | null>();
+const uploadIcon = ref<File[]>([]);
+
 const showDependentArea = ref(false);
 const showDependencySelect = ref(false);
 const repoPath = ref("");
@@ -530,8 +586,14 @@ const formRegistry = ref<HTMLFormElement>();
 
 const root = computed(() => store.state.root);
 const config = computed(() => store.state.projectConfig);
+const selectedIcon = ref(config.value?.img);
 const projectPool = computed(() => store.state.projectsPool);
 const settings = computed(() => store.state.webinizerSettings);
+const icons = computed(() => store.state.availableIcons);
+const existUploadIcon = computed(
+  () =>
+    icons.value?.some((item) => item.isUploaded === true && selectedIcon.value?.name !== item.name)
+);
 
 const dependencySelectOptions = computed(() => {
   // local projects
@@ -583,6 +645,8 @@ const dependentProjectNameToDisplay = computed(() => {
 
 const queryRegistryWithDebounce = lodash.debounce(queryRegistry, 500);
 
+const prefix4ProjIcon = `${API_SERVER}/api/projects/${encodeURIComponent(root.value)}/icons/`;
+
 function confirmPackageHandler(packageNameWithVersion: string) {
   // we should split the parameter to package name for `projName`
   // and package version for `version`
@@ -615,6 +679,19 @@ function fileChangeHandler($event: Event) {
   }
 }
 
+function iconChangeHandler($event: Event) {
+  // clear the selectedIcon value
+  selectedIcon.value = undefined;
+  const target = $event.target as HTMLInputElement;
+  if (target !== undefined && target.files) {
+    if (uploadIcon.value.length > 0) {
+      uploadIcon.value[0] = target.files[0];
+    } else {
+      uploadIcon.value.push(target.files[0]);
+    }
+  }
+}
+
 /*
  *  bind project with icons in /src/assets/basic/preseticons
  *  according to the word initial of the project name
@@ -623,13 +700,19 @@ function fileChangeHandler($event: Event) {
  *  `a.png` means word `A` ...
  */
 function bindIconAccordingToProjName(projectName: string) {
-  const iconPathPrefix = "../assets/basic/preseticons/192x192/";
   const iconFileExtends = ".png";
   const matches = projectName.match(/[a-zA-Z0-9]/);
   if (matches) {
-    return iconPathPrefix + matches[0].toLocaleLowerCase() + iconFileExtends;
+    return matches[0].toLocaleLowerCase() + iconFileExtends;
   }
   return "";
+}
+
+async function selectIconHandler(iconObj: ProjectIcon) {
+  uploadIcon.value = [];
+  selectedIcon.value = iconObj;
+
+  if (root.value) await saveConfig({ img: iconObj });
 }
 
 async function saveConfig(configToMerge?: { [k: string]: unknown }) {
@@ -781,7 +864,17 @@ async function uploadProjectFile() {
         formData.append("projectDesc", projDesc.value);
         formData.append("projectIsLib", String(projIsLibrary.value));
         formData.append("projectDependencies", JSON.stringify(finalDependencies.value, null, 2));
-        formData.append("img", bindIconAccordingToProjName(projName.value as string));
+        formData.append(
+          "img",
+          JSON.stringify(
+            selectedIcon.value || {
+              name: bindIconAccordingToProjName(projName.value as string),
+              isUploaded: false,
+            },
+            null,
+            2
+          )
+        );
 
         await store.dispatch("uploadProjectFile", formData);
         uploadedSize += blobFile.size;
@@ -790,15 +883,32 @@ async function uploadProjectFile() {
       }
     } catch (error) {
       store.commit("setProjAddStatus", ProjectAddStatus.done);
+      refUploadProgress.value = 0;
       log.errMsgNCuz(error);
       return;
     }
   }
 }
 
+async function uploadProjectIcon() {
+  const { name } = uploadIcon.value[0];
+  let blob = uploadIcon.value[0];
+  let blobFile = new File([blob], `${name}`);
+  let formData = new FormData();
+  formData.append("file", blobFile);
+  await store.dispatch("uploadProjectIcon", formData);
+
+  uploadIcon.value = [];
+  // refresh icons list
+  await getAvailableIcons();
+}
+
 async function cloneProject() {
   await store.dispatch("cloneProjectFile", {
-    img: bindIconAccordingToProjName(projName.value as string),
+    img: selectedIcon.value || {
+      name: bindIconAccordingToProjName(projName.value as string),
+      isUploaded: false,
+    },
     name: projName.value,
     version: projVersion.value,
     desc: projDesc.value,
@@ -810,7 +920,6 @@ async function cloneProject() {
 
 async function fetchProject() {
   await store.dispatch("fetchProjectFromRegistry", {
-    img: bindIconAccordingToProjName(projName.value as string),
     name: projName.value,
     version: projVersion.value,
   });
@@ -838,6 +947,17 @@ async function submitProject() {
     default:
       break;
   }
+}
+
+async function removeIcon(iconObj: ProjectIcon) {
+  // only uploaded icons can be removed
+  if (iconObj.isUploaded) {
+    await store.dispatch("removeIcon", prefix4ProjIcon + iconObj.name);
+  }
+}
+
+async function getAvailableIcons() {
+  await store.dispatch("getAllAvailableIcons");
 }
 
 onMounted(async () => {
@@ -868,7 +988,28 @@ watch(
           showDependencySelect.value = false;
           showDependentArea.value = true;
         }
+
+        /* upload the project icon after adding */
+        if (uploadIcon.value.length > 0) {
+          /* trigger to upload icon */
+          await uploadProjectIcon();
+        }
+
+        /* update the selected icon after uploading*/
         await store.dispatch("fetchProjectConfig");
+
+        /* if the config.img object is undefined, bind with default
+         * icon based on work-initial
+         */
+        if (config.value?.img === undefined) {
+          await saveConfig({
+            img: {
+              name: bindIconAccordingToProjName(projName.value as string),
+              isUploaded: false,
+            },
+          });
+        }
+
         toast.success(`Project ${projName.value as string} has been successfully added!`);
       }
     }
@@ -894,6 +1035,17 @@ watch(
     if (_n) {
       if (config.value?.dependencies && Object.keys(config.value.dependencies).length)
         showDependentArea.value = true;
+    }
+  }
+);
+
+watch(
+  () => config.value?.img,
+  (_n) => {
+    if (_n) {
+      if (config.value?.img && Object.keys(config.value?.img).length > 0) {
+        selectedIcon.value = config.value?.img;
+      }
     }
   }
 );

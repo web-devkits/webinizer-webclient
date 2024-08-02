@@ -21,6 +21,7 @@ export interface State {
   openFiles: string[];
   fileDirTree: webinizer.DTreeNode[];
   projectsPool: webinizer.ProjectProfile[];
+  deletedProjectsPool: webinizer.ProjectProfile[];
   buildingStatus: webinizer.statusType;
   buildResults?: webinizer.ProjectResult;
   templateLiterals: string[];
@@ -31,6 +32,7 @@ export interface State {
   depConfigs?: { [k: string]: webinizer.ProjectConfig };
   displayMode?: webinizer.DisplayMode;
   webinizerSettings?: webinizer.WebinizerSettings;
+  availableIcons?: webinizer.ProjectIcon[];
 }
 
 export const key: InjectionKey<Store<State>> = Symbol();
@@ -46,6 +48,7 @@ export const store = createStore<State>({
     openFiles: [],
     fileDirTree: [],
     projectsPool: [],
+    deletedProjectsPool: [],
     buildingStatus: "idle_default",
     buildResults: undefined,
     templateLiterals: [],
@@ -57,13 +60,13 @@ export const store = createStore<State>({
     depConfigs: undefined,
     displayMode: "card",
     webinizerSettings: undefined,
+    availableIcons: [],
   },
   mutations: {
     initState(state: State) {
       state.root = "";
       state.recipes = [];
       state.projectConfig = undefined;
-      state.needSaveConfig = false;
       state.editFile = undefined;
       state.openFiles = [];
       state.fileDirTree = [];
@@ -76,6 +79,7 @@ export const store = createStore<State>({
       state.projDepUpdateStatus = undefined;
       state.availableBuilders = [];
       state.depConfigs = undefined;
+      state.availableIcons = [];
     },
     setRoot(state: State, root: string) {
       state.root = root;
@@ -91,9 +95,6 @@ export const store = createStore<State>({
         state.projectConfig = { __type__: "ProjectConfig" };
       }
       Object.assign(state.projectConfig, configToMerge);
-    },
-    setNeedSaveConfig(state: State, needSave: boolean) {
-      state.needSaveConfig = needSave;
     },
     setRecommendedBuilders(state: State, builders: webinizer.Builder[]) {
       state.recommendedBuilders = builders;
@@ -118,6 +119,10 @@ export const store = createStore<State>({
 
     setProjectPool(state: State, projects: webinizer.ProjectProfile[]) {
       state.projectsPool = projects;
+    },
+
+    setDeletedProjectPool(state: State, projects: webinizer.ProjectProfile[]) {
+      state.deletedProjectsPool = projects;
     },
 
     setTemplateLiterals(state: State, templates: string[]) {
@@ -163,6 +168,10 @@ export const store = createStore<State>({
 
     setWebinizerSettings(state: State, settings: webinizer.WebinizerSettings) {
       state.webinizerSettings = settings;
+    },
+
+    setAvailableIcons(state: State, icons: webinizer.ProjectIcon[]) {
+      state.availableIcons = icons;
     },
   },
 
@@ -220,7 +229,6 @@ export const store = createStore<State>({
 
     async saveProjectConfig({ commit, state }, configToMerge?: { [k: string]: unknown }) {
       try {
-        // if (state.needSaveConfig && state.projectConfig) {
         if (state.projectConfig) {
           let config = null;
           if (configToMerge) {
@@ -237,7 +245,6 @@ export const store = createStore<State>({
             commit("setProjDepUpdateStatus", webinizer.ProjectDepUpdateStatus.done);
           }
         }
-        // commit("setNeedSaveConfig", false);
       } catch (error) {
         commit("setProjDepUpdateStatus", webinizer.ProjectDepUpdateStatus.done);
         throw error as Error;
@@ -391,6 +398,15 @@ export const store = createStore<State>({
       }
     },
 
+    async fetchDeletedProjects({ commit }) {
+      try {
+        const projects = await webinizer.getDeletedProjects();
+        commit("setDeletedProjectPool", projects);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
     async saveAsNewFile({ commit, state }, file: webinizer.EditFile) {
       try {
         const newFile = await webinizer.saveAsNewFile(state.root, file.name, file.content);
@@ -431,7 +447,7 @@ export const store = createStore<State>({
       try {
         const result = await webinizer.uploadProjectFile(formData);
         commit("setProjAddStatus", result.status);
-        if (result.path) commit("setRoot", result.path);
+        if (result.path && result.path !== "undefined") commit("setRoot", result.path);
       } catch (error) {
         throw error as Error;
       }
@@ -481,7 +497,19 @@ export const store = createStore<State>({
     async deleteProject({ commit }, projectPath: string) {
       try {
         const projects = await webinizer.deleteProject(projectPath);
-        commit("setProjectPool", projects);
+        commit("setDeletedProjectPool", projects);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
+    async deleteProjects({ commit, state }, projectPathArray: string[]) {
+      try {
+        const projects = await webinizer.deleteProjects(
+          projectPathArray,
+          state.deletedProjectsPool
+        );
+        commit("setDeletedProjectPool", projects);
       } catch (error) {
         throw error as Error;
       }
@@ -521,6 +549,33 @@ export const store = createStore<State>({
       try {
         const settings = await webinizer.updateWebinizerSettings(settingParts);
         commit("setWebinizerSettings", settings);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
+    async uploadProjectIcon({ commit, state }, formData: FormData) {
+      try {
+        const config = await webinizer.uploadProjectIcon(state.root, formData);
+        commit("setProjectConfig", config);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
+    async getAllAvailableIcons({ commit, state }) {
+      try {
+        const icons = await webinizer.getAllAvailableIcons(state.root);
+        commit("setAvailableIcons", icons);
+      } catch (error) {
+        throw error as Error;
+      }
+    },
+
+    async removeIcon({ commit, state }, img: string) {
+      try {
+        const icons = await webinizer.removeIcon(state.root, img);
+        commit("setAvailableIcons", icons);
       } catch (error) {
         throw error as Error;
       }

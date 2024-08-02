@@ -17,10 +17,13 @@ import { useToast } from "vue-toastification";
 
 const toast = useToast();
 
-// FIXME: no hard code here
-// We assume the backend is in the same host, i.e. in the same docker instance
-// And we use http protocol with port 16666
-const API_SERVER = `http://${location.hostname}:16666`;
+export const API_SERVER = `http://${location.hostname}:16666`;
+export const WS_SERVER_PATH = `ws://${location.hostname}:16666/ws`;
+
+export enum WsMessageType {
+  UpdateBuildStatus = "updateBuildStatus",
+  UpdateDependenciesConfig = "updateDependenciesConfig",
+}
 
 export const enum ActionsTypes {
   BuilderArgsChange = 1,
@@ -254,10 +257,21 @@ export interface ProjectProfile extends IJsonObject {
   name?: string;
   path?: string;
   desc?: string;
-  img?: string;
+  img?: ProjectIcon;
   category?: string;
   id?: number;
   version?: string;
+}
+
+export interface ProjectPerson {
+  name: string;
+  email?: string;
+  url?: string;
+}
+
+export interface ProjectRepository {
+  type: string;
+  url: string;
 }
 
 export interface ProjectBuildTargetConfig {
@@ -284,6 +298,13 @@ export interface ProjectConfig extends IJsonObject {
   overallEnvs?: ProjectEnv;
   resolutions?: PkgResolution[];
   requiredBy?: { [k: string]: string };
+  author?: ProjectPerson;
+  keywords?: string[];
+  repository?: ProjectRepository;
+  homepage?: string;
+  bugs?: string;
+  license?: string;
+  img?: ProjectIcon;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -391,6 +412,11 @@ export interface IExtensionSettingsJson {
 export interface WebinizerSettings {
   registry?: string;
   extensions?: { [k: string]: IExtensionSettingsJson };
+}
+
+export interface ProjectIcon {
+  name: string;
+  isUploaded: boolean;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -568,10 +594,9 @@ function formatLogContent(content: string): string {
   const patternArr = new Map<string, RegExp>([
     ["timeReg", /[0-2][0-9]:[0-5][0-9]:[0-5][0-9]/g],
     ["typeReg", /(info|warn|error)/g],
-    [
-      "builderReg",
-      /(CMakeBuildStep|ConfigureBuildStep|MakeBuildStep|EmccBuildStep|NativeCommand|project)/g,
-    ],
+    // each builder will be decorated with the color from `chalk`
+    // module, and its color tag is `\u001b[92m`
+    ["builderReg", /\\u001b\[92m(\w+)/],
     ["contentReg", /\s[a-zA-Z]*\s.*/g],
   ]);
 
@@ -594,13 +619,20 @@ function formatLogContent(content: string): string {
         switch (pattern) {
           case "timeReg":
           case "typeReg":
-          case "builderReg":
             logContentStr = logContentStr.concat(
               "[",
               lineContent.match(patternArr.get(pattern)!)![0],
               "] "
             );
             break;
+          case "builderReg": {
+            const match = lineContent.match(patternArr.get(pattern)!);
+            if (match) {
+              logContentStr = logContentStr.concat("[", match[1], "] ");
+            }
+            break;
+          }
+
           default:
             logContentStr = logContentStr.concat(lineContent.match(patternArr.get(pattern)!)![0]);
             break;
@@ -659,6 +691,13 @@ export async function getProjects(): Promise<ProjectProfile[]> {
   log.info(">>> getProjects");
   const response = await axios.get(`${API_SERVER}/api/projects/profile`);
   log.info("<<< getProjects", response.data);
+  return response.data.profiles as ProjectProfile[];
+}
+
+export async function getDeletedProjects(): Promise<ProjectProfile[]> {
+  log.info(">>> get deleted projects");
+  const response = await axios.get(`${API_SERVER}/api/projects/profile/deleted`);
+  log.info("<<<  get deleted projects", response.data);
   return response.data.profiles as ProjectProfile[];
 }
 
@@ -725,6 +764,16 @@ export async function uploadProjectFile(formData: FormData): Promise<ProjectAddR
   return response.data as ProjectAddResult;
 }
 
+export async function uploadProjectIcon(root: string, formData: FormData): Promise<ProjectConfig> {
+  log.info(">>> uploadProjectIcon", formData);
+  const response = await axios.post(
+    `${API_SERVER}/api/projects/${encodeURIComponent(root)}/icons`,
+    formData
+  );
+  log.info("<<< uploadProjectIcon", response.data);
+  return response.data as ProjectConfig;
+}
+
 export async function cloneProjectFromRemote(
   repoPath: string,
   config?: { [k: string]: unknown }
@@ -750,9 +799,25 @@ export async function addProjectFromRegistry(
 }
 
 export async function deleteProject(root: string): Promise<ProjectProfile[]> {
-  log.info(">>> deleteProject", root);
+  log.info(">>> delete project from disk", root);
   const response = await axios.delete(`${API_SERVER}/api/projects/${encodeURIComponent(root)}`);
-  log.info("<<< deleteProject", response);
+  log.info("<<< delete project from disk", response);
+  return response.data.profiles as ProjectProfile[];
+}
+
+export async function deleteProjects(
+  rootArray: string[],
+  deletedProjectsPool: ProjectProfile[]
+): Promise<ProjectProfile[]> {
+  log.info(">>> delete a list projects from disk", rootArray);
+  if (rootArray.length === 0) return deletedProjectsPool;
+
+  const params = { projectRootArray: rootArray.map((root) => encodeURIComponent(root)) };
+  const response = await axios.delete(`${API_SERVER}/api/projects`, {
+    params,
+  });
+
+  log.info("<<< delete a list projects from disk", response);
   return response.data.profiles as ProjectProfile[];
 }
 
@@ -786,4 +851,27 @@ export async function updateWebinizerSettings(
   const response = await axios.post(`${API_SERVER}/api/settings`, { settingParts });
   log.info("<<< update webinizer settings", response);
   return response.data as WebinizerSettings;
+}
+
+export async function getAllAvailableIcons(root?: string): Promise<ProjectIcon[]> {
+  log.info(">>> get all icons of the project", root);
+  const params = { root: encodeURIComponent(root || "") };
+  const response = await axios.get(`${API_SERVER}/api/projects/icons`, { params });
+  log.info("<<< get all icons of the project", response);
+  return response.data as ProjectIcon[];
+}
+
+/**
+ *
+ * @param root the project root path
+ * @param img the url of this icon
+ * @returns the icons object array after deleting
+ */
+export async function removeIcon(root: string, img: string): Promise<ProjectIcon[]> {
+  log.info(">>> remove the icon of the project", img);
+  const response = await axios.delete(
+    `${API_SERVER}/api/projects/${encodeURIComponent(root)}/icons/${encodeURIComponent(img)}`
+  );
+  log.info("<<< remove the icon of the project", response);
+  return response.data as ProjectIcon[];
 }

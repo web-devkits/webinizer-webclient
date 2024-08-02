@@ -14,15 +14,15 @@
 
   <section v-if="root">
     <div class="d-flex justify-space-around">
-      <nav class="nav-body-position hidden-md-and-down">
+      <nav class="nav-body-position hidden-md-and-down text-left">
         <v-list>
-          <v-list-item class="text-left"
+          <v-list-item
             ><template #title><span class="text-h6">Configuration</span></template
             ><template #subtitle><span>Click to jump</span></template></v-list-item
           >
         </v-list>
 
-        <v-list class="text-left" density="compact" nav mandatory>
+        <v-list density="compact" nav mandatory>
           <v-list-item
             v-for="(item, index) in validElementRefObj"
             :key="index"
@@ -45,10 +45,10 @@
           </v-card>
         </div>
 
-        <div v-if="config?.target">
+        <div v-if="config?.target" class="text-left">
           <div :id="ConfigElementId.OverAllEnvVariable" name="configOption" class="bl mr-6 mb-4">
             <v-card variant="elevated" flat>
-              <v-card-item class="text-left mb-10"
+              <v-card-item class="mb-10"
                 ><v-card-title> Overall env variables </v-card-title></v-card-item
               >
               <v-card-text>
@@ -76,7 +76,7 @@
           <div class="g1x2">
             <div :id="ConfigElementId.EnvVariable" name="configOption" class="bl mr-6 mb-4">
               <v-card variant="elevated" flat>
-                <v-card-item class="text-left mb-10"
+                <v-card-item class="mb-10"
                   ><v-card-title> Env variables </v-card-title></v-card-item
                 >
 
@@ -87,7 +87,11 @@
                     type-name="cflags"
                     :value="config?.buildTargets?.[config.target]?.envs?.cflags"
                     :tip-content="generateTemplatesTip()"
-                    @change-with-type="saveProjectEnv"></EditTextField>
+                    :update-value-manually="updateManuallyFlag4Cflags"
+                    @change-with-type="saveProjectEnv"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4Cflags = false
+                    "></EditTextField>
                 </v-card-text>
 
                 <v-card-text>
@@ -97,7 +101,11 @@
                     type-name="ldflags"
                     :value="config?.buildTargets?.[config.target]?.envs?.ldflags"
                     :tip-content="generateTemplatesTip()"
-                    @change-with-type="saveProjectEnv"></EditTextField>
+                    :update-value-manually="updateManuallyFlag4Ldflags"
+                    @change-with-type="saveProjectEnv"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4Ldflags = false
+                    "></EditTextField>
                 </v-card-text>
 
                 <v-card-text>
@@ -106,7 +114,12 @@
                     label="Exported functions"
                     :value="config?.buildTargets?.[config.target]?.exportedFuncs"
                     :tip-content="exportedFuncsTip"
-                    @change="saveProjectExportedFuncs"></EditTextField>
+                    :rules="configFieldRulesObject.exportedFunctionsRules"
+                    :update-value-manually="updateManuallyFlag4ExpFuncs"
+                    @change="saveProjectExportedFuncs"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4ExpFuncs = false
+                    "></EditTextField>
                 </v-card-text>
 
                 <v-card-text>
@@ -115,7 +128,12 @@
                     label="Exported runtime methods"
                     :value="config?.buildTargets?.[config.target]?.exportedRuntimeMethods"
                     :tip-content="exportedRuntimeMethodsTip"
-                    @change="saveProjectExportedRuntimeMethods"></EditTextField>
+                    :rules="configFieldRulesObject.exportedFunctionsRules"
+                    :update-value-manually="updateManuallyFlag4ExpRTM"
+                    @change="saveProjectExportedRuntimeMethods"
+                    @reset-update-val-manually-flag="
+                      updateManuallyFlag4ExpRTM = false
+                    "></EditTextField>
                 </v-card-text>
               </v-card>
             </div>
@@ -128,6 +146,7 @@
                 :value="config?.buildTargets?.[config.target]?.preloadFiles"
                 :label="'Path to local data file'"
                 :tip-content="generateLocalDataFilesTip()"
+                :rules="configFieldRulesObject.localDataFileRules"
                 @change="saveProjectDataFiles"></EditTextFieldList>
             </div>
           </div>
@@ -197,11 +216,11 @@
           ></v-card>
         </div>
 
-        <div v-if="config?.isLibrary" class="g1x2">
+        <div v-if="config?.isLibrary" class="g1x2 text-left">
           <div :id="ConfigElementId.Package" name="configOption" class="bl mr-6 mb-4">
             <div v-if="config?.target">
               <v-card variant="elevated" flat>
-                <v-card-item class="text-left mb-10"
+                <v-card-item class="mb-10"
                   ><v-card-title> Package configs </v-card-title></v-card-item
                 >
                 <v-card-text>
@@ -236,7 +255,7 @@
           </div>
           <div :id="ConfigElementId.NativeLibrary" name="configOption" class="bl mb-4">
             <v-card variant="elevated" flat>
-              <v-card-item class="text-left mb-10"
+              <v-card-item class="mb-10"
                 ><v-card-title> Native library info </v-card-title></v-card-item
               >
               <v-card-text>
@@ -310,7 +329,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+/*
+  eslint-disable
+    @typescript-eslint/no-unsafe-member-access,
+    @typescript-eslint/no-unsafe-call,
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unsafe-assignment
+*/
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useStore } from "../store";
 import {
   ProjectEnv,
@@ -321,6 +347,8 @@ import {
   ProjectPkgInfo,
   PkgInfoType,
   ConfigParameterTypes,
+  WS_SERVER_PATH,
+  WsMessageType,
 } from "../webinizer";
 import { useRouter, useRoute } from "vue-router";
 import { getProjectName } from "../common/utility/utility";
@@ -331,6 +359,7 @@ import EditDepConfig from "../components/config/EditDepConfig.vue";
 import Alert from "../components/Alert.vue";
 import RadioButtons from "../components/config/RadioButtons.vue";
 import { log } from "../helper";
+import WebSocket from "isomorphic-ws";
 
 enum ConfigElementId {
   BuildTarget = "BUILD_TARGET",
@@ -353,6 +382,8 @@ interface ConfigElemRefType {
 // navigation item, the window will scroll to the element, it will
 // also trigger the scroll event handler.
 let isClicking = false;
+
+let wsClient: WebSocket;
 
 const tip =
   "Select the <b>static</b> build target if you want to build your project with static linking. All dependent libraries will be built into Wasm archive files (.a), and then linked to the main project to get a standalone Wasm module with no external dependencies.\n\nSelect the <b>shared</b> build target if you want to build your project with dynamic linking. All dependent libraries will be built into Wasm binary files (.wasm/.so) as side modules (using flag -sSIDE_MODULE), whose exports will be dynamically imported into the context of main project's Wasm module (using flag -sMAIN_MODULE) by JavaScript glue code.\n\nMore details for static and dynamic linking are available <a href='https://emscripten.org/docs/compiling/Dynamic-Linking.html' target='_blank'>here</a>.";
@@ -391,12 +422,39 @@ const allConfigElemRefObjArr: ConfigElemRefType[] = [
   },
 ];
 
+const configFieldRulesObject = {
+  exportedFunctionsRules: [
+    (value: string) => {
+      if (value) {
+        const functionArr = value
+          .trim()
+          .split(",")
+          .map((v) => v.trim());
+        if (functionArr.length === new Set(functionArr).size) return true;
+        else return "The added function/method name cannot be repeated.";
+      }
+    },
+  ],
+  localDataFileRules: [
+    (value: string) => {
+      if (value && value.trim()?.length > 0) return true;
+      return "The path can't be empty.";
+    },
+  ],
+};
+
 const configOptionGroup = document.getElementsByName("configOption");
 
 const store = useStore();
 const router = useRouter();
 const route = useRoute();
 const alertReset = ref(false);
+
+const updateManuallyFlag4Cflags = ref(false),
+  updateManuallyFlag4Ldflags = ref(false),
+  updateManuallyFlag4ExpFuncs = ref(false),
+  updateManuallyFlag4ExpRTM = ref(false);
+
 const buildTarget = ref("static");
 const validElementRefObj = ref<ConfigElemRefType[]>();
 
@@ -479,6 +537,37 @@ function scrollEventHandler() {
   }
 }
 
+function initWebsocket() {
+  //NOTE - create websocket connection between the browser and
+  //       server, the server will send the message when dependency
+  //       project updates the config
+  wsClient = new WebSocket(`${WS_SERVER_PATH}?root=${root.value}`);
+
+  wsClient.onopen = () => {
+    log.info("The websocket connected");
+  };
+  wsClient.onclose = () => {
+    log.info(`The websocket connection of ${root.value} disconnected`);
+  };
+
+  wsClient.onmessage = async (data: any) => {
+    log.info("data from websocket server", JSON.parse(data.data as string));
+    const dataObj = JSON.parse(data.data as string);
+    // only handle the `UpdateDependenciesConfig` message in this
+    // `Configure` page
+    if (dataObj.wsMsgType === WsMessageType.UpdateDependenciesConfig) {
+      if (root.value) {
+        // for sub-project, should update the config like the
+        // build target that is changed from the main project
+        await store.dispatch("fetchProjectConfig");
+        await updateBuildTarget();
+        // for main project, re-fetch dependency config to update
+        await fetchDependencyConfig();
+      }
+    }
+  };
+}
+
 async function saveConfig(configToMerge: { [k: string]: unknown }, forTarget = false) {
   try {
     if (config.value) {
@@ -506,7 +595,20 @@ async function saveProjectEnv(type: string, env: string | undefined) {
     newEnvs = Object.assign({}, config.value.buildTargets?.[config.value.target].envs);
   }
   newEnvs[type as EnvType] = env ? env : "";
-  return saveConfig({ envs: newEnvs }, true);
+  await saveConfig({ envs: newEnvs }, true);
+
+  if (
+    config.value &&
+    config.value.target &&
+    config.value.buildTargets &&
+    JSON.stringify(config.value.buildTargets[config.value.target].envs) !== JSON.stringify(newEnvs)
+  ) {
+    if (type === "ldflags") {
+      updateManuallyFlag4Ldflags.value = true;
+    } else if (type === "cflags") {
+      updateManuallyFlag4Cflags.value = true;
+    }
+  }
 }
 
 async function saveProjectDataFiles(preloadFiles: string[] | undefined) {
@@ -514,11 +616,36 @@ async function saveProjectDataFiles(preloadFiles: string[] | undefined) {
 }
 
 async function saveProjectExportedFuncs(exportedFuncs: string | undefined) {
-  return saveConfig({ exportedFuncs }, true);
+  await saveConfig({ exportedFuncs }, true);
+  // Check if the exportedFuncs changed after requesting
+  //
+  // In most cases, the config will be updated and changes after
+  // the requesting. Whereas, there is sometimes unusually
+  // like changing `func1, func2, func1` from `func1,func2`,
+  // but got `func1, func2` from the server because of the rules,
+  // the props.value(config.buildTarget[target].exportedFuncs)
+  // keeps the same, and the sub-component could not sync because
+  // it cannot be detected by the watcher in sub-component.
+  if (
+    config.value &&
+    config.value.target &&
+    config.value.buildTargets &&
+    config.value.buildTargets[config.value.target].exportedFuncs !== exportedFuncs
+  ) {
+    updateManuallyFlag4ExpFuncs.value = true;
+  }
 }
 
 async function saveProjectExportedRuntimeMethods(exportedRuntimeMethods: string | undefined) {
-  return saveConfig({ exportedRuntimeMethods }, true);
+  await saveConfig({ exportedRuntimeMethods }, true);
+  if (
+    config.value &&
+    config.value.target &&
+    config.value.buildTargets &&
+    config.value.buildTargets[config.value.target].exportedRuntimeMethods !== exportedRuntimeMethods
+  ) {
+    updateManuallyFlag4ExpRTM.value = true;
+  }
 }
 
 async function saveProjectOptions(opt: string) {
@@ -594,6 +721,29 @@ async function saveProjectNativeLib(type: string, infoVal: string | undefined) {
   return saveConfig({ nativeLibrary: newInfo });
 }
 
+async function fetchDependencyConfig() {
+  // fetch dependency project configs
+  if (config.value?.resolutions && config.value?.resolutions.length) {
+    // fresh fetch for dependency configs
+    store.commit("resetDependencyConfigs");
+    await Promise.all(
+      config.value?.resolutions.map(async (pkgResolution) => {
+        await store.dispatch("fetchDependencyProjectConfig", pkgResolution);
+      })
+    );
+  }
+}
+
+async function updateBuildTarget() {
+  if (config.value?.target) {
+    buildTarget.value = config.value?.target;
+  } else {
+    await store.dispatch("saveProjectConfig", {
+      target: buildTarget.value,
+    });
+  }
+}
+
 onMounted(async () => {
   try {
     if (route.query.root) {
@@ -603,24 +753,9 @@ onMounted(async () => {
       await store.dispatch("fetchProjectConfig");
       await store.dispatch("fetchTemplateLiterals");
 
-      if (config.value?.target) {
-        buildTarget.value = config.value?.target;
-      } else {
-        await store.dispatch("saveProjectConfig", {
-          target: buildTarget.value,
-        });
-      }
+      await updateBuildTarget();
 
-      // fetch dependency project configs
-      if (config.value?.resolutions && config.value?.resolutions.length) {
-        // fresh fetch for dependency configs
-        store.commit("resetDependencyConfigs");
-        await Promise.all(
-          config.value?.resolutions.map(async (pkgResolution) => {
-            await store.dispatch("fetchDependencyProjectConfig", pkgResolution);
-          })
-        );
-      }
+      await fetchDependencyConfig();
 
       // element has been rendered after mounted,assign value
       filterAllConfigElemRefObjArr();
@@ -642,9 +777,19 @@ onMounted(async () => {
       }
 
       window.addEventListener("scroll", scrollEventHandler);
+
+      // init websocket connection
+      initWebsocket();
     }
   } catch (error) {
     log.errMsgNCuz(error);
+  }
+});
+
+onUnmounted(() => {
+  if (wsClient) {
+    // close the websocket connection before leaving the page
+    wsClient.close();
   }
 });
 </script>

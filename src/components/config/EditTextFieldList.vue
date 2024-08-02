@@ -9,29 +9,9 @@
     <v-card-item class="text-left mb-10">
       <v-card-title class="d-flex">
         <div>{{ props.title }}</div>
-        <div ref="helpPopover" class="helpPopover" @mouseover="popoverPosition()">
-          <v-btn
-            v-if="props.needTip && props.tipContent"
-            icon="mdi-help-circle-outline"
-            size="x-small"
-            variant="flat">
-          </v-btn>
-
-          <div v-if="props.needTip && props.tipContent" ref="popover" class="popover">
-            <div ref="leftBar" class="leftBar">
-              <span ref="popoverArrow"></span>
-            </div>
-            <div>
-              <div ref="tips" class="tips">Tips</div>
-              <!-- eslint-disable vue/no-v-html -->
-              <div
-                ref="description"
-                v-dompurify-html="props.tipContent || ''"
-                class="description"
-                style="white-space: pre-line"></div>
-            </div>
-          </div>
-        </div>
+        <template v-if="props.needTip && props.tipContent"
+          ><TipPopover type="L" :tip-content="props.tipContent"></TipPopover
+        ></template>
       </v-card-title>
     </v-card-item>
 
@@ -41,7 +21,7 @@
           support-delete
           :value="initValArr.valArr[idx]"
           :label="props.label"
-          :rules="rules"
+          :rules="props.rules"
           @change="changeItem(idx, $event)"
           @delete="deleteItem(idx)"></EditTextField>
       </v-card-text>
@@ -51,7 +31,7 @@
           need-delete
           :is-adding="isAdding"
           :label="props.label"
-          :rules="rules"
+          :rules="props.rules"
           @change="changeItem(props.value !== undefined ? props.value.length : 0, $event)"
           @cancel-add="isAdding = false"></EditTextField>
       </v-card-text>
@@ -65,9 +45,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, reactive, onMounted } from "vue";
+/*
+  eslint-disable
+    @typescript-eslint/no-explicit-any,
+    @typescript-eslint/no-unused-vars
+ */
+import { ref, watch, reactive } from "vue";
 import { cloneDeep } from "lodash";
 import EditTextField from "./EditTextField.vue";
+import TipPopover from "../TipPopover.vue";
 
 const props = defineProps<{
   title?: string;
@@ -77,6 +63,7 @@ const props = defineProps<{
   needAdd?: boolean;
   needTip?: boolean;
   tipContent?: string;
+  rules?: any;
 }>();
 
 const emit = defineEmits<{
@@ -84,37 +71,8 @@ const emit = defineEmits<{
   (e: "delete"): void;
 }>();
 
-const rules = [(v: string) => !!v || "The path can't be empty!"];
-
 const isAdding = ref(false);
-const helpPopover = ref<HTMLDivElement>();
-const popover = ref<HTMLDivElement>();
-const popoverArrow = ref<HTMLSpanElement>();
-const leftBar = ref<HTMLDivElement>();
-const tips = ref<HTMLDivElement>();
-const description = ref<HTMLDivElement>();
 const initValArr = reactive({ valArr: cloneDeep(props.value) || [] });
-
-function popoverPosition() {
-  let left = helpPopover.value?.getBoundingClientRect().left || 0;
-  let top = helpPopover.value?.getBoundingClientRect().top || 0;
-  let height = popover.value?.clientHeight || 0;
-  left = left + 20;
-  let topnew = top - height / 2.0 + 3;
-
-  if (left && top && height) {
-    let style = `left: ${left}px; top: ${topnew}px; width: 400px;`;
-    tips.value?.setAttribute("style", "width: 390px;");
-    description.value?.setAttribute("style", "width: 390px;");
-    popover.value?.setAttribute("style", style);
-    popoverArrow.value?.setAttribute("style", `left: ${left + 2}px; top: ${top + 4}px`);
-  }
-
-  if (left * top * height == 0) {
-    popover.value?.setAttribute("style", "left: 50%; top: 50%; transform: translate(-50%, -50%);");
-    leftBar.value?.setAttribute("style", "display: none;");
-  }
-}
 
 function changeItem(idx: number, v?: string) {
   const valueCopy = cloneDeep(initValArr.valArr) || [];
@@ -128,20 +86,8 @@ function deleteItem(idx: number) {
   emit("change", valueCopy);
 }
 
-onMounted(() => {
-  return {
-    helpPopover,
-    popover,
-    popoverArrow,
-    leftBar,
-    tips,
-    description,
-  };
-});
-
 watch(
   () => props.value,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   (newVal, _) => {
     initValArr.valArr = cloneDeep(newVal) || [];
   }

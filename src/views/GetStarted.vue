@@ -44,8 +44,16 @@
           </div>
           <div class="add_title"><span>Add Project</span></div>
         </div>
+        <div
+          :class="['delete_wrapper', showRecyclePanel ? 'delete_wrapper_active' : '']"
+          @click="toRecycleBin">
+          <div class="delete_icon">
+            <span><v-icon icon="mdi-delete"></v-icon></span>
+          </div>
+          <div class="delete_title"><span>Recycle Bin</span></div>
+        </div>
       </div>
-      <div v-if="displayMode === 'card'" class="rs rg">
+      <div v-if="displayMode === 'card' && !showRecyclePanel" class="rs rg">
         <div v-for="(lib, index) in reactiveLibsList" :key="index" class="profile">
           <div
             v-if="!lib.id && lib.id !== 0"
@@ -55,8 +63,15 @@
           </div>
           <div class="pi">
             <div class="pti">
-              <div v-if="lib.img && lib.img.length > 0">
-                <img :src="lib.img" />
+              <div v-if="lib.img && Object.keys(lib.img).length > 0">
+                <img
+                  :src="
+                    lib.img?.isUploaded
+                      ? prefix4ProjIcon +
+                        `${encodeURIComponent(lib.path as string)}/icons/` +
+                        lib.img?.name
+                      : prefix4DefaultIcon + lib.img?.name
+                  " />
               </div>
               <h3 :title="lib.name">{{ lib.name }}</h3>
             </div>
@@ -72,12 +87,14 @@
               <p class="psi">{{ lib.version }}</p>
             </div>
             <div class="ps">
-              <button class="select-btn" @click="selectProject(index)">SELECT</button>
+              <button class="select-btn" @click="selectProject(index)">
+                <span :title="lib.path">SELECT</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
-      <div v-else class="mx-auto">
+      <div v-else-if="displayMode === 'list' && !showRecyclePanel" class="mx-auto">
         <div v-for="(lib, index) in reactiveLibsList" :key="index">
           <div class="project_list">
             <div v-if="!lib.id && lib.id !== 0" class="project_delete_icon">
@@ -89,7 +106,15 @@
             </div>
             <div class="project_img">
               <v-avatar size="36px" rounded="0">
-                <v-img v-if="lib.img && lib.img.length > 0" :src="lib.img"></v-img>
+                <v-img
+                  v-if="lib.img && Object.keys(lib.img).length > 0"
+                  :src="
+                    lib.img?.isUploaded
+                      ? prefix4ProjIcon +
+                        `${encodeURIComponent(lib.path as string)}/icons/` +
+                        lib.img?.name
+                      : prefix4DefaultIcon + lib.img?.name
+                  "></v-img>
               </v-avatar>
             </div>
             <div class="project_name">
@@ -110,7 +135,70 @@
               <span v-else> - </span>
             </div>
             <div class="project_select_btn">
-              <button class="select-btn" @click="selectProject(index)">select</button>
+              <button class="select-btn" @click="selectProject(index)">
+                <span :title="lib.path">SELECT</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="showRecyclePanel" id="recycleBinPanel">
+        <v-banner class="mb-4" lines="one">
+          <template #text><span class="text-h6">Recycle bin</span></template>
+          <template #actions>
+            <v-btn
+              v-if="deletedProjectsList.length > 0"
+              size="small"
+              @click="showAlert(-1, true, true)"
+              >Delete All</v-btn
+            >
+          </template>
+        </v-banner>
+        <div v-for="(lib, index) in deletedProjectsList" :key="index">
+          <div class="project_list">
+            <div class="project_delete_icon">
+              <v-icon
+                title="Delete this project from the disk"
+                class="delete-icon"
+                icon="mdi-close-thick"
+                @click="showAlert(index, true)"></v-icon>
+            </div>
+            <div class="project_img">
+              <v-avatar size="36px" rounded="0">
+                <v-img
+                  v-if="lib.img && Object.keys(lib.img).length > 0"
+                  :src="
+                    lib.img?.isUploaded
+                      ? prefix4ProjIcon +
+                        `${encodeURIComponent(lib.path as string)}/icons/` +
+                        lib.img?.name
+                      : prefix4DefaultIcon + lib.img?.name
+                  "></v-img>
+              </v-avatar>
+            </div>
+            <div class="project_name">
+              <h3 :title="lib.name">
+                {{ lib.name }}
+              </h3>
+            </div>
+            <div class="project_version">
+              <span class="version_badge">
+                <span class="px-1">V{{ lib.version }}</span>
+              </span>
+            </div>
+            <div class="project_path">
+              <span class="text-medium-emphasis" :title="lib.path">{{ lib.path }}</span>
+            </div>
+
+            <div class="project_select_btn">
+              <button class="restore-btn" @click="restoreProject(index)">restore</button>
+              <v-icon
+                title="restore this project"
+                class="restore-icon"
+                size="x-large"
+                icon="mdi-undo-variant"
+                color="blue"
+                @click="restoreProject(index)"></v-icon>
             </div>
           </div>
         </div>
@@ -131,8 +219,8 @@
   <Transition name="slide-fade">
     <Alert
       v-if="alert"
-      content="Are you sure to delete?"
-      @confirm="deleteProject()"
+      :content="alertContent"
+      @confirm="deleteIdx === -1 ? deleteAllProjects() : deleteProject()"
       @cancel="alert = false"></Alert
   ></Transition>
 </template>
@@ -143,40 +231,73 @@ import { computed, onMounted, ref } from "vue";
 import { useStore } from "../store";
 import { useRouter } from "vue-router";
 import { log } from "../helper";
-import { DisplayMode } from "../webinizer";
+import { API_SERVER, DisplayMode } from "../webinizer";
 
 const store = useStore();
 const router = useRouter();
 
-let deleteIdx = -1;
+const deleteIdx = ref(-1);
 const alert = ref(false);
 const pageNum = ref(1);
+const showRecyclePanel = ref(false);
+const alertContent = ref("");
 
-/* limit 6 for card mode and 10 for list mode */
-const eachPageProjNum = computed(() => (displayMode.value === "card" ? 6 : 10));
+// limit 15 for deleted projects panel
+// limit 6 for card mode and 10 for list mode
+const eachPageProjNum = computed(() =>
+  showRecyclePanel.value ? 15 : displayMode.value === "card" ? 6 : 10
+);
+
 const reactiveLibsList = computed(() =>
   store.state.projectsPool.slice(
     (pageNum.value - 1) * eachPageProjNum.value,
     pageNum.value * eachPageProjNum.value
   )
 );
-const displayMode = computed(() => store.state.displayMode);
-const totalPageNum = computed(() =>
-  store.state.projectsPool.length === 0
-    ? "0"
-    : (store.state.projectsPool.length / eachPageProjNum.value) % 1 === 0
-    ? store.state.projectsPool.length / eachPageProjNum.value
-    : Math.trunc(store.state.projectsPool.length / eachPageProjNum.value) + 1
+
+const deletedProjectsList = computed(() =>
+  store.state.deletedProjectsPool.slice(
+    (pageNum.value - 1) * eachPageProjNum.value,
+    pageNum.value * eachPageProjNum.value
+  )
 );
 
-function showAlert(idx: number) {
-  deleteIdx = idx;
+const displayMode = computed(() => store.state.displayMode);
+const totalPageNum = computed(() => {
+  const projects = showRecyclePanel.value
+    ? store.state.deletedProjectsPool
+    : store.state.projectsPool;
+
+  return projects.length === 0
+    ? "0"
+    : (projects.length / eachPageProjNum.value) % 1 === 0
+    ? projects.length / eachPageProjNum.value
+    : Math.trunc(projects.length / eachPageProjNum.value) + 1;
+});
+
+const prefix4DefaultIcon = `${API_SERVER}/assets/icons/default/`;
+const prefix4ProjIcon = `${API_SERVER}/api/projects/`;
+
+function showAlert(idx: number, hardDelete?: boolean, deleteAll?: boolean) {
+  alertContent.value = deleteAll
+    ? "Are you sure to delete all these projects from the disk?"
+    : hardDelete
+    ? "Are you sure to delete this project from the disk?"
+    : "Are you sure to delete?";
+  deleteIdx.value = idx;
   alert.value = true;
 }
 
 function updateDisplayMode(mode: DisplayMode) {
+  showRecyclePanel.value = false;
   pageNum.value = 1;
   store.commit("setDisplayMode", mode);
+}
+
+function toRecycleBin() {
+  showRecyclePanel.value = true;
+  pageNum.value = 1;
+  store.commit("setDisplayMode", "");
 }
 
 async function saveConfig(configToMerge?: { [k: string]: unknown }) {
@@ -206,18 +327,63 @@ async function selectProject(index: number) {
   } catch (error) {
     log.errMsgNCuz(error);
   }
-  // remove the previous project state before selecting new one
+}
+
+async function restoreProject(index: number) {
+  try {
+    store.commit("setRoot", deletedProjectsList.value[index].path);
+    await saveConfig({
+      deleted: false,
+    });
+    store.commit("setRoot", undefined);
+    // refresh the projects in the state
+    await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+  } catch (error) {
+    store.commit("setRoot", undefined);
+    log.errMsgNCuz(error);
+  }
 }
 
 async function deleteProject() {
   try {
-    if (deleteIdx === -1) return;
-    await store.dispatch("deleteProject", reactiveLibsList.value[deleteIdx].path);
+    if (deleteIdx.value === -1) return;
+    // if delete from the recycle bin, it means remove from the disk
+    if (showRecyclePanel.value) {
+      await store.dispatch("deleteProject", deletedProjectsList.value[deleteIdx.value].path);
+    } else {
+      // update the deleted flag for soft delete
+      store.commit("setRoot", reactiveLibsList.value[deleteIdx.value].path);
+      await saveConfig({
+        deleted: true,
+      });
+    }
+    store.commit("setRoot", undefined);
+    // refresh the projects in the state
+    await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+  } catch (error) {
+    store.commit("setRoot", undefined);
+    log.errMsgNCuz(error);
+  } finally {
+    alert.value = false;
+    deleteIdx.value = -1;
+  }
+}
+
+async function deleteAllProjects() {
+  try {
+    if (deletedProjectsList.value.length === 0) return;
+    await store.dispatch(
+      "deleteProjects",
+      deletedProjectsList.value.map((item) => item.path)
+    );
+    await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
   } catch (error) {
     log.errMsgNCuz(error);
   } finally {
     alert.value = false;
-    deleteIdx = -1;
   }
 }
 
@@ -229,6 +395,8 @@ async function toAddProject() {
 onMounted(async () => {
   try {
     await store.dispatch("fetchProjects");
+    await store.dispatch("fetchDeletedProjects");
+    store.commit("setDisplayMode", "card");
   } catch (error) {
     log.errMsgNCuz(error);
   }
@@ -338,6 +506,7 @@ onMounted(async () => {
 }
 .pti div img {
   height: 128px;
+  width: 128px;
   border-radius: 12%;
   border: 1px solid var(--black-03);
 }
@@ -349,6 +518,7 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
+button.restore-btn,
 button.select-btn {
   outline: none;
   text-align: center;
@@ -369,8 +539,8 @@ button.select-btn {
     0px 1px 5px 0px rgb(0 0 0 / 12%);
 }
 
-button.select-btn:hover,
-button.select-btn.hover {
+button.restore-btn:hover,
+button.select-btn:hover {
   color: var(--white);
   letter-spacing: 1px;
   background: linear-gradient(135deg, var(--p-8) 40%, var(--secondary) 25%);
@@ -381,7 +551,7 @@ button.select-btn.hover {
     0px 1px 10px 0px rgb(0 0 0 / 12%);
 }
 
-button.select-btn:active,
+button.restore-btn:active,
 button.select-btn.active {
   background: linear-gradient(135deg, var(--p-8) 40%, var(--secondary) 25%);
   outline: none;
@@ -392,15 +562,20 @@ button.select-btn.active {
   top: 0;
 }
 
+button.restore-btn.disabled,
 button.select-btn.disabled {
   opacity: 0.4;
   user-select: none;
   pointer-events: none;
 }
+
+button.restore-btn.medium,
 button.select-btn.medium {
   padding: 15px 18px;
   width: auto;
 }
+
+button.restore-btn.small,
 button.select-btn.small {
   padding: 10px 12px;
   width: auto;
@@ -430,12 +605,14 @@ button.select-btn.small {
   grid-row-gap: 10px;
 }
 
+.delete_wrapper,
 .add_wrapper {
   display: flex;
+  position: relative;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border: 1px transparent solid;
+  border: 1px solid transparent;
   background: var(--backgroundColor);
   color: var(--foregroundColor);
   border-radius: 5px;
@@ -443,11 +620,29 @@ button.select-btn.small {
   width: 180px;
   height: 180px;
 }
-
+.delete_title,
 .add_title {
   padding: 5px 5px;
 }
 
+.delete_wrapper::before {
+  content: "";
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 2px;
+  height: 100%;
+  background: grey;
+  border-radius: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.delete_wrapper_active.delete_wrapper::before {
+  opacity: 1;
+}
+
+.delete_wrapper:hover,
 .add_wrapper:hover {
   cursor: pointer;
   border: 1px solid var(--black-1);
@@ -499,6 +694,7 @@ button.select-btn.small {
   margin: 0.8rem 0;
 }
 
+.delete_icon,
 .add_icon {
   display: flex;
   justify-content: center;
@@ -511,8 +707,20 @@ button.select-btn.small {
   margin: 0;
 }
 
+.delete_icon {
+  border: 2px solid #aaa;
+}
+
+.delete_wrapper .delete_icon span {
+  color: #aaa;
+}
 .add_wrapper .add_icon span {
   color: var(--p-8);
+}
+
+.delete_wrapper:hover .delete_icon {
+  background-color: #aaa;
+  box-shadow: 1px 3px 5px 0px rgb(35 100 210 / 10%);
 }
 
 .add_wrapper:hover .add_icon {
@@ -520,10 +728,14 @@ button.select-btn.small {
   box-shadow: 1px 3px 5px 0px rgb(35 100 210 / 10%);
 }
 
+.delete_wrapper:hover .delete_icon span,
 .add_wrapper:hover .add_icon span {
   color: white;
 }
 
+.delete_wrapper:hover .delete_title {
+  color: #aaa;
+}
 .add_wrapper:hover .add_title {
   color: var(--p-8);
 }
@@ -587,6 +799,7 @@ button.select-btn.small {
   justify-self: start;
 }
 
+.project_path,
 .project_desc {
   grid-column: 5;
   max-width: 100%;
@@ -596,9 +809,15 @@ button.select-btn.small {
   justify-self: start;
 }
 
+#recycleBinPanel .project_path {
+  grid-column-start: 5;
+  grid-column-end: 7;
+}
+
 .project_name,
 .project_version,
 .project_desc,
+.project_path,
 .project_category {
   cursor: text;
 }
@@ -606,6 +825,10 @@ button.select-btn.small {
 .project_select_btn {
   justify-self: center;
   padding-right: 10px;
+}
+
+.restore-icon {
+  display: none;
 }
 
 @media only screen and (min-width: 1280px) {
@@ -642,6 +865,15 @@ button.select-btn.small {
     grid-column: 3;
   }
 
+  #recycleBinPanel .project_version {
+    display: none;
+  }
+
+  #recycleBinPanel .project_path {
+    grid-column-start: 4;
+    grid-column-end: 6;
+  }
+
   .project_desc {
     display: none;
   }
@@ -656,7 +888,7 @@ button.select-btn.small {
     margin: auto;
     overflow: hidden;
   }
-
+  .rs.rg .delete_wrapper,
   .rs.rg .add_wrapper {
     margin: auto;
     overflow: hidden;
@@ -686,6 +918,14 @@ button.select-btn.small {
     grid-column: 1;
   }
 
+  .delete_wrapper {
+    position: absolute;
+    left: 80%;
+    transform: translate(-50%, -100%);
+    width: 96px;
+    height: 96px;
+  }
+
   .add_wrapper {
     position: absolute;
     left: 50%;
@@ -694,6 +934,7 @@ button.select-btn.small {
     height: 96px;
   }
 
+  .delete_title,
   .add_title {
     display: none;
   }
@@ -711,8 +952,8 @@ button.select-btn.small {
   .project_list {
     width: 100%;
     grid-template-columns:
-      25px minmax(150px, 4fr) minmax(90px, 1fr)
-      3fr;
+      25px minmax(120px, 4fr) minmax(120px, 4fr)
+      1fr;
     gap: 10px;
   }
 
@@ -728,6 +969,17 @@ button.select-btn.small {
   .project_desc,
   .project_category {
     display: none;
+  }
+
+  #recycleBinPanel .project_path {
+    grid-column: 3;
+  }
+
+  .restore-btn {
+    display: none;
+  }
+  .restore-icon {
+    display: block;
   }
 }
 </style>
