@@ -72,7 +72,8 @@
 /*
   eslint-disable
     @typescript-eslint/no-non-null-assertion,
-    @typescript-eslint/no-unused-vars
+    @typescript-eslint/no-unused-vars,
+    @typescript-eslint/no-unused-expressions
  */
 import { ref, reactive, watch, computed } from "vue";
 import { cloneDeep } from "lodash";

@@ -472,7 +472,8 @@
   eslint-disable
     @typescript-eslint/no-unsafe-call,
     no-unsafe-optional-chaining,
-    @typescript-eslint/no-unsafe-assignment
+    @typescript-eslint/no-unsafe-assignment,
+    @typescript-eslint/no-redundant-type-constituents
  */
 
 import EditTextAreaVue from "../components/config/EditTextArea.vue";

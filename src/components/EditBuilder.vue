@@ -67,7 +67,8 @@
 <script setup lang="ts">
 /*
   eslint-disable
-    @typescript-eslint/no-non-null-assertion
+    @typescript-eslint/no-non-null-assertion,
+    @typescript-eslint/no-unused-expressions
  */
 import { ref, reactive, watch } from "vue";
 import { cloneDeep } from "lodash";
