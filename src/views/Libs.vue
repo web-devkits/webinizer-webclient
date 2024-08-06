@@ -104,6 +104,10 @@
 </template>
 
 <script lang="ts" setup>
+/*
+  eslint-disable
+    @typescript-eslint/no-unused-expressions
+*/
 import { reactive, ref } from "vue";
 
 type AllCategoryObject = Record<string, { checked: boolean; number: number }>;

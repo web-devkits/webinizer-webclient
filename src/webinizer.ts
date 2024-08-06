@@ -9,6 +9,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 // TODO: Currently we have to redefine the JSON format in both backend and client side
 // maybe we could unify the definition in one place and referenced by two projects
 import axios from "axios";

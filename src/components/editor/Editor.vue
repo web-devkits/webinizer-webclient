@@ -35,6 +35,10 @@
 </template>
 
 <script setup lang="ts">
+/*
+  eslint-disable
+    @typescript-eslint/no-unsafe-enum-comparison
+*/
 import { monaco, EditorType } from "./customerEditor";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useStore } from "../../store";
