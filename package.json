@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@mdi/font": "7.1.96",
-    "axios": "^1.6.0",
+    "axios": "^1.7.4",
     "github-markdown-css": "^5.2.0",
     "highlight.js": "^11.7.0",
     "isomorphic-dompurify": "^1.2.0",
